@@ -3,19 +3,29 @@
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 
-// Datos de ejemplo - en producción vendrían de la API
-const data = [
-  { date: "2023-01", rate: 950 },
-  { date: "2023-02", rate: 980 },
-  { date: "2023-03", rate: 1020 },
-  { date: "2023-04", rate: 1050 },
-  { date: "2023-05", rate: 1080 },
-  { date: "2023-06", rate: 1100 },
-  { date: "2023-07", rate: 1120 },
-  { date: "2023-08", rate: 1150 },
-]
+interface CurrencyExchangeRatesProps {
+  data?: any[]
+}
 
-export function CurrencyExchangeRates() {
+export function CurrencyExchangeRates({ data = [] }: CurrencyExchangeRatesProps) {
+  // Usar los datos proporcionados o datos de ejemplo si no hay datos
+  const chartData =
+    data.length > 0
+      ? data.map((item) => ({
+          date: new Date(item.date).toLocaleDateString("es-AR", { month: "numeric", year: "numeric" }),
+          rate: item.price || item.exchange_rate,
+        }))
+      : [
+          { date: "1/2023", rate: 950 },
+          { date: "2/2023", rate: 980 },
+          { date: "3/2023", rate: 1020 },
+          { date: "4/2023", rate: 1050 },
+          { date: "5/2023", rate: 1080 },
+          { date: "6/2023", rate: 1100 },
+          { date: "7/2023", rate: 1120 },
+          { date: "8/2023", rate: 1150 },
+        ]
+
   return (
     <ChartContainer
       config={{
@@ -27,7 +37,7 @@ export function CurrencyExchangeRates() {
       className="aspect-[4/3] sm:aspect-[16/9]"
     >
       <LineChart
-        data={data}
+        data={chartData}
         margin={{
           top: 20,
           right: 30,

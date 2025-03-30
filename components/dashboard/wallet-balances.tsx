@@ -2,16 +2,19 @@
 
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 import { ChartContainer } from "@/components/ui/chart"
+import type { Billetera } from "@/lib/db"
 
-// Datos de ejemplo - en producción vendrían de la API
-const data = [
-  { name: "Wise", value: 4000 },
-  { name: "Deel", value: 3000 },
-  { name: "Revolut", value: 2000 },
-  { name: "Nexo", value: 2780 },
-]
+interface WalletBalancesProps {
+  wallets: Billetera[]
+}
 
-export function WalletBalances() {
+export function WalletBalances({ wallets }: WalletBalancesProps) {
+  // Transformar los datos de las billeteras para el gráfico
+  const data = wallets.map((wallet) => ({
+    name: wallet.name,
+    value: wallet.balance,
+  }))
+
   return (
     <ChartContainer
       config={{

@@ -2,6 +2,7 @@ import type React from "react"
 import { Inter } from "next/font/google"
 import { MainNav } from "@/components/layout/main-nav"
 import { ThemeProvider } from "@/components/theme-provider"
+import { SchemaIndicator } from "@/components/schema-indicator"
 import { cn } from "@/lib/utils"
 import "./globals.css"
 
@@ -26,6 +27,9 @@ export default function RootLayout({
             <header className="sticky top-0 z-50 w-full border-b bg-background">
               <div className="container flex h-16 items-center">
                 <MainNav />
+                <div className="ml-auto flex items-center">
+                  <SchemaIndicator />
+                </div>
               </div>
             </header>
             <main className="flex-1 container py-6">{children}</main>

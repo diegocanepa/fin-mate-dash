@@ -26,28 +26,41 @@ import {
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import type { Forex } from "@/lib/db"
 
-// Tipo para los datos de cambio de divisas
-interface CambioDivisas {
-  id: number
-  fecha: string
-  accion: string
-  cantidad: number
-  moneda_origen: string
-  moneda_destino: string
-  precio_cambio: number
-  total: number
-  descripcion: string
+// Función para normalizar códigos de moneda
+function normalizeCurrencyCode(code: string): string {
+  // Mapeo de nombres comunes a códigos ISO
+  const currencyMap: Record<string, string> = {
+    PESOS: "ARS",
+    DOLAR: "USD",
+    DOLARES: "USD",
+    EURO: "EUR",
+    EUROS: "EUR",
+  }
+
+  // Si el código está en el mapeo, devolver el código normalizado
+  if (currencyMap[code.toUpperCase()]) {
+    return currencyMap[code.toUpperCase()]
+  }
+
+  // Si el código ya tiene 3 letras, asumimos que es válido
+  if (code.length === 3) {
+    return code.toUpperCase()
+  }
+
+  // Por defecto, devolver ARS para pesos argentinos
+  return "ARS"
 }
 
-export const columns: ColumnDef<CambioDivisas>[] = [
+export const columns: ColumnDef<Forex>[] = [
   {
     accessorKey: "id",
     header: "ID",
-    cell: ({ row }) => <div className="font-mono text-xs">{row.getValue("id")}</div>,
+    cell: ({ row }) => <div className="font-mono text-xs">{row.getValue("id").substring(0, 8)}...</div>,
   },
   {
-    accessorKey: "fecha",
+    accessorKey: "date",
     header: ({ column }) => {
       return (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
@@ -57,20 +70,20 @@ export const columns: ColumnDef<CambioDivisas>[] = [
       )
     },
     cell: ({ row }) => {
-      const fecha = new Date(row.getValue("fecha"))
+      const fecha = new Date(row.getValue("date"))
       return <div>{fecha.toLocaleDateString()}</div>
     },
   },
   {
-    accessorKey: "accion",
+    accessorKey: "action",
     header: "Acción",
     cell: ({ row }) => {
-      const accion = row.getValue("accion") as string
+      const accion = row.getValue("action") as string
       return <Badge variant={accion === "Compra" ? "default" : "secondary"}>{accion}</Badge>
     },
   },
   {
-    accessorKey: "cantidad",
+    accessorKey: "amount",
     header: ({ column }) => {
       return (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
@@ -80,14 +93,15 @@ export const columns: ColumnDef<CambioDivisas>[] = [
       )
     },
     cell: ({ row }) => {
-      const cantidad = Number.parseFloat(row.getValue("cantidad"))
-      const moneda = row.getValue("moneda_origen") as string
+      const cantidad = Number.parseFloat(row.getValue("amount"))
+      const moneda = row.getValue("currency_from") as string
+      const normalizedCurrency = normalizeCurrencyCode(moneda)
 
       return (
         <div className="font-medium">
           {new Intl.NumberFormat("es-AR", {
             style: "currency",
-            currency: moneda,
+            currency: normalizedCurrency,
             currencyDisplay: "narrowSymbol",
           }).format(cantidad)}
         </div>
@@ -95,15 +109,15 @@ export const columns: ColumnDef<CambioDivisas>[] = [
     },
   },
   {
-    accessorKey: "moneda_origen",
+    accessorKey: "currency_from",
     header: "Moneda Origen",
   },
   {
-    accessorKey: "moneda_destino",
+    accessorKey: "currency_to",
     header: "Moneda Destino",
   },
   {
-    accessorKey: "precio_cambio",
+    accessorKey: "price",
     header: ({ column }) => {
       return (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
@@ -113,7 +127,7 @@ export const columns: ColumnDef<CambioDivisas>[] = [
       )
     },
     cell: ({ row }) => {
-      const precio = Number.parseFloat(row.getValue("precio_cambio"))
+      const precio = Number.parseFloat(row.getValue("price"))
 
       return (
         <div className="font-medium">
@@ -126,7 +140,7 @@ export const columns: ColumnDef<CambioDivisas>[] = [
     },
   },
   {
-    accessorKey: "total",
+    id: "total",
     header: ({ column }) => {
       return (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
@@ -136,22 +150,34 @@ export const columns: ColumnDef<CambioDivisas>[] = [
       )
     },
     cell: ({ row }) => {
-      const total = Number.parseFloat(row.getValue("total"))
-      const moneda = row.getValue("moneda_destino") as string
+      const amount = Number.parseFloat(row.getValue("amount"))
+      const price = Number.parseFloat(row.getValue("price"))
+      const total = amount * price
+      const moneda = row.getValue("currency_to") as string
+      const normalizedCurrency = normalizeCurrencyCode(moneda)
 
-      return (
-        <div className="font-medium">
-          {new Intl.NumberFormat("es-AR", {
-            style: "currency",
-            currency: moneda,
-            currencyDisplay: "narrowSymbol",
-          }).format(total)}
-        </div>
-      )
+      try {
+        return (
+          <div className="font-medium">
+            {new Intl.NumberFormat("es-AR", {
+              style: "currency",
+              currency: normalizedCurrency,
+              currencyDisplay: "narrowSymbol",
+            }).format(total)}
+          </div>
+        )
+      } catch (error) {
+        // En caso de error, mostrar el valor sin formato de moneda
+        return (
+          <div className="font-medium">
+            {total.toFixed(2)} {moneda}
+          </div>
+        )
+      }
     },
   },
   {
-    accessorKey: "descripcion",
+    accessorKey: "description",
     header: "Descripción",
   },
   {
@@ -183,7 +209,7 @@ export const columns: ColumnDef<CambioDivisas>[] = [
 ]
 
 interface ExchangeHistoryTableProps {
-  data: CambioDivisas[]
+  data: Forex[]
 }
 
 export function ExchangeHistoryTable({ data }: ExchangeHistoryTableProps) {
@@ -210,8 +236,8 @@ export function ExchangeHistoryTable({ data }: ExchangeHistoryTableProps) {
       <div className="flex items-center py-4">
         <Input
           placeholder="Filtrar por descripción..."
-          value={(table.getColumn("descripcion")?.getFilterValue() as string) ?? ""}
-          onChange={(event) => table.getColumn("descripcion")?.setFilterValue(event.target.value)}
+          value={(table.getColumn("description")?.getFilterValue() as string) ?? ""}
+          onChange={(event) => table.getColumn("description")?.setFilterValue(event.target.value)}
           className="max-w-sm"
         />
       </div>

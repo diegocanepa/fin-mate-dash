@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, XAxis, YAxis } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { EmptyState } from "@/components/ui/empty-state"
 
 interface GastoIngreso {
   id: number
@@ -20,6 +21,7 @@ interface IncomeVsExpensesChartProps {
 
 export function IncomeVsExpensesChart({ data }: IncomeVsExpensesChartProps) {
   const [chartData, setChartData] = useState<any[]>([])
+  const [hasData, setHasData] = useState(false)
 
   useEffect(() => {
     // Agrupar datos por mes
@@ -58,52 +60,18 @@ export function IncomeVsExpensesChart({ data }: IncomeVsExpensesChartProps) {
     })
 
     setChartData(processedData)
+    setHasData(
+      processedData.length > 0 &&
+        (processedData.some((item) => item.ingresos > 0) || processedData.some((item) => item.gastos > 0)),
+    )
   }, [data])
 
-  // Si no hay datos suficientes, agregar datos de ejemplo
-  if (chartData.length < 2) {
-    const demoData = [
-      { month: "1/2023", ingresos: 3500, gastos: 1200 },
-      { month: "2/2023", ingresos: 3500, gastos: 1350 },
-      { month: "3/2023", ingresos: 3800, gastos: 1400 },
-      { month: "4/2023", ingresos: 3800, gastos: 1250 },
-      { month: "5/2023", ingresos: 4000, gastos: 1500 },
-      { month: "6/2023", ingresos: 4000, gastos: 1600 },
-    ]
+  if (!hasData) {
     return (
-      <ChartContainer
-        config={{
-          ingresos: {
-            label: "Ingresos",
-            color: "hsl(var(--chart-2))",
-          },
-          gastos: {
-            label: "Gastos",
-            color: "hsl(var(--chart-3))",
-          },
-        }}
-        className="aspect-[4/3] sm:aspect-[16/9]"
-      >
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={demoData}
-            margin={{
-              top: 20,
-              right: 30,
-              left: 20,
-              bottom: 20,
-            }}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-            <YAxis tick={{ fontSize: 12 }} />
-            <ChartTooltip content={<ChartTooltipContent />} />
-            <Legend />
-            <Bar dataKey="ingresos" name="Ingresos" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="gastos" name="Gastos" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </ChartContainer>
+      <EmptyState
+        title="No hay datos para mostrar"
+        description="No hay transacciones registradas para generar el gráfico de ingresos vs gastos."
+      />
     )
   }
 

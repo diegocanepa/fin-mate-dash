@@ -25,28 +25,16 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import type { Transfer } from "@/lib/db"
 
-// Tipo para los datos de transferencias
-interface Transferencia {
-  id: number
-  fecha: string
-  billetera_origen: string
-  billetera_destino: string
-  monto_inicial: number
-  monto_final: number
-  moneda: string
-  comision: number
-  descripcion: string
-}
-
-export const columns: ColumnDef<Transferencia>[] = [
+export const columns: ColumnDef<Transfer>[] = [
   {
     accessorKey: "id",
     header: "ID",
-    cell: ({ row }) => <div className="font-mono text-xs">{row.getValue("id")}</div>,
+    cell: ({ row }) => <div className="font-mono text-xs">{row.getValue("id").substring(0, 8)}...</div>,
   },
   {
-    accessorKey: "fecha",
+    accessorKey: "date",
     header: ({ column }) => {
       return (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
@@ -56,20 +44,20 @@ export const columns: ColumnDef<Transferencia>[] = [
       )
     },
     cell: ({ row }) => {
-      const fecha = new Date(row.getValue("fecha"))
+      const fecha = new Date(row.getValue("date"))
       return <div>{fecha.toLocaleDateString()}</div>
     },
   },
   {
-    accessorKey: "billetera_origen",
+    accessorKey: "wallet_from",
     header: "Origen",
   },
   {
-    accessorKey: "billetera_destino",
+    accessorKey: "wallet_to",
     header: "Destino",
   },
   {
-    accessorKey: "monto_inicial",
+    accessorKey: "initial_amount",
     header: ({ column }) => {
       return (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
@@ -79,8 +67,8 @@ export const columns: ColumnDef<Transferencia>[] = [
       )
     },
     cell: ({ row }) => {
-      const monto = Number.parseFloat(row.getValue("monto_inicial"))
-      const moneda = row.getValue("moneda") as string
+      const monto = Number.parseFloat(row.getValue("initial_amount"))
+      const moneda = row.getValue("currency") as string
 
       return (
         <div className="font-medium">
@@ -94,7 +82,7 @@ export const columns: ColumnDef<Transferencia>[] = [
     },
   },
   {
-    accessorKey: "monto_final",
+    accessorKey: "final_amount",
     header: ({ column }) => {
       return (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
@@ -104,8 +92,8 @@ export const columns: ColumnDef<Transferencia>[] = [
       )
     },
     cell: ({ row }) => {
-      const monto = Number.parseFloat(row.getValue("monto_final"))
-      const moneda = row.getValue("moneda") as string
+      const monto = Number.parseFloat(row.getValue("final_amount"))
+      const moneda = row.getValue("currency") as string
 
       return (
         <div className="font-medium">
@@ -119,11 +107,11 @@ export const columns: ColumnDef<Transferencia>[] = [
     },
   },
   {
-    accessorKey: "moneda",
+    accessorKey: "currency",
     header: "Moneda",
   },
   {
-    accessorKey: "comision",
+    id: "comision",
     header: ({ column }) => {
       return (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
@@ -133,8 +121,10 @@ export const columns: ColumnDef<Transferencia>[] = [
       )
     },
     cell: ({ row }) => {
-      const comision = Number.parseFloat(row.getValue("comision"))
-      const moneda = row.getValue("moneda") as string
+      const montoInicial = Number.parseFloat(row.getValue("initial_amount"))
+      const montoFinal = Number.parseFloat(row.getValue("final_amount"))
+      const comision = montoInicial - montoFinal
+      const moneda = row.getValue("currency") as string
 
       return (
         <div className="font-medium">
@@ -148,7 +138,7 @@ export const columns: ColumnDef<Transferencia>[] = [
     },
   },
   {
-    accessorKey: "descripcion",
+    accessorKey: "description",
     header: "Descripción",
   },
   {
@@ -180,7 +170,7 @@ export const columns: ColumnDef<Transferencia>[] = [
 ]
 
 interface TransferHistoryTableProps {
-  data: Transferencia[]
+  data: Transfer[]
 }
 
 export function TransferHistoryTable({ data }: TransferHistoryTableProps) {
@@ -207,8 +197,8 @@ export function TransferHistoryTable({ data }: TransferHistoryTableProps) {
       <div className="flex items-center py-4">
         <Input
           placeholder="Filtrar por descripción..."
-          value={(table.getColumn("descripcion")?.getFilterValue() as string) ?? ""}
-          onChange={(event) => table.getColumn("descripcion")?.setFilterValue(event.target.value)}
+          value={(table.getColumn("description")?.getFilterValue() as string) ?? ""}
+          onChange={(event) => table.getColumn("description")?.setFilterValue(event.target.value)}
           className="max-w-sm"
         />
       </div>

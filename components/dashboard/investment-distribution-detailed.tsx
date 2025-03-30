@@ -4,7 +4,7 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts"
 import { ChartContainer } from "@/components/ui/chart"
 
 interface InvestmentItem {
-  id: number
+  id: string
   nombre: string
   categoria: string
   valor_total: number

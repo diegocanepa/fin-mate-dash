@@ -26,26 +26,16 @@ import {
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import type { Transaction } from "@/lib/db"
 
-// Tipo para los datos de gastos e ingresos
-interface GastoIngreso {
-  id: number
-  fecha: string
-  accion: string
-  amount: number
-  moneda: string
-  categoria: string
-  descripcion: string
-}
-
-export const columns: ColumnDef<GastoIngreso>[] = [
+export const columns: ColumnDef<Transaction>[] = [
   {
     accessorKey: "id",
     header: "ID",
-    cell: ({ row }) => <div className="font-mono text-xs">{row.getValue("id")}</div>,
+    cell: ({ row }) => <div className="font-mono text-xs">{row.getValue("id").substring(0, 8)}...</div>,
   },
   {
-    accessorKey: "fecha",
+    accessorKey: "date",
     header: ({ column }) => {
       return (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
@@ -55,20 +45,20 @@ export const columns: ColumnDef<GastoIngreso>[] = [
       )
     },
     cell: ({ row }) => {
-      const fecha = new Date(row.getValue("fecha"))
+      const fecha = new Date(row.getValue("date"))
       return <div>{fecha.toLocaleDateString()}</div>
     },
   },
   {
-    accessorKey: "accion",
+    accessorKey: "action",
     header: "Tipo",
     cell: ({ row }) => {
-      const accion = row.getValue("accion") as string
+      const accion = row.getValue("action") as string
       return <Badge variant={accion === "Gasto" ? "destructive" : "default"}>{accion}</Badge>
     },
   },
   {
-    accessorKey: "categoria",
+    accessorKey: "category",
     header: ({ column }) => {
       return (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
@@ -79,7 +69,7 @@ export const columns: ColumnDef<GastoIngreso>[] = [
     },
   },
   {
-    accessorKey: "descripcion",
+    accessorKey: "description",
     header: "Descripción",
   },
   {
@@ -94,8 +84,8 @@ export const columns: ColumnDef<GastoIngreso>[] = [
     },
     cell: ({ row }) => {
       const amount = Number.parseFloat(row.getValue("amount"))
-      const accion = row.getValue("accion") as string
-      const moneda = row.getValue("moneda") as string
+      const accion = row.getValue("action") as string
+      const moneda = row.getValue("currency") as string
 
       // Format the amount as a currency
       const formatted = new Intl.NumberFormat("es-AR", {
@@ -112,7 +102,7 @@ export const columns: ColumnDef<GastoIngreso>[] = [
     },
   },
   {
-    accessorKey: "moneda",
+    accessorKey: "currency",
     header: "Moneda",
   },
   {
@@ -144,7 +134,7 @@ export const columns: ColumnDef<GastoIngreso>[] = [
 ]
 
 interface TransactionsTableProps {
-  data: GastoIngreso[]
+  data: Transaction[]
 }
 
 export function TransactionsTable({ data }: TransactionsTableProps) {
@@ -171,8 +161,8 @@ export function TransactionsTable({ data }: TransactionsTableProps) {
       <div className="flex items-center py-4">
         <Input
           placeholder="Filtrar por categoría..."
-          value={(table.getColumn("categoria")?.getFilterValue() as string) ?? ""}
-          onChange={(event) => table.getColumn("categoria")?.setFilterValue(event.target.value)}
+          value={(table.getColumn("category")?.getFilterValue() as string) ?? ""}
+          onChange={(event) => table.getColumn("category")?.setFilterValue(event.target.value)}
           className="max-w-sm"
         />
       </div>
