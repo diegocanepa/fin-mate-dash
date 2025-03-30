@@ -12,7 +12,5 @@ export const supabase = createClient(supabaseUrl, supabaseKey)
 // Función auxiliar para obtener una referencia a una tabla con el esquema configurado
 // Alternativa si la primera solución no funciona
 export function getTableWithSchema(tableName: string) {
-  // Usar SQL directo para especificar el esquema
-  return supabase.from(tableName).rpc("set_schema", { schema_name: DB_SCHEMA })
+  return supabase.schema(DB_SCHEMA).from(tableName);
 }
-
