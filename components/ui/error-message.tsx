@@ -28,4 +28,3 @@ export function ErrorMessage({ title, description, retry }: ErrorMessageProps) {
     </Alert>
   )
 }
-

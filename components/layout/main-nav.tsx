@@ -3,10 +3,14 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { BarChart3, CreditCard, DollarSign, Home, PiggyBank, Wallet } from "lucide-react"
+import { BarChart3, CreditCard, DollarSign, Home, PiggyBank, Wallet, Menu } from "lucide-react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
 export function MainNav() {
   const pathname = usePathname()
+  const [open, setOpen] = useState(false)
 
   const routes = [
     {
@@ -48,24 +52,59 @@ export function MainNav() {
   ]
 
   return (
-    <nav className="flex items-center space-x-4 lg:space-x-6">
-      {routes.map((route) => {
-        const Icon = route.icon
-        return (
-          <Link
-            key={route.href}
-            href={route.href}
-            className={cn(
-              "flex items-center text-sm font-medium transition-colors hover:text-primary",
-              route.active ? "text-primary" : "text-muted-foreground",
-            )}
-          >
-            <Icon className="mr-2 h-4 w-4" />
-            {route.label}
-          </Link>
-        )
-      })}
-    </nav>
+    <>
+      {/* Versión móvil */}
+      <div className="md:hidden">
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Abrir menú</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left">
+            <div className="flex flex-col space-y-4 py-4">
+              {routes.map((route) => {
+                const Icon = route.icon
+                return (
+                  <Link
+                    key={route.href}
+                    href={route.href}
+                    className={cn(
+                      "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent",
+                      route.active ? "bg-accent text-accent-foreground" : "text-muted-foreground",
+                    )}
+                    onClick={() => setOpen(false)}
+                  >
+                    <Icon className="mr-2 h-4 w-4" />
+                    {route.label}
+                  </Link>
+                )
+              })}
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+
+      {/* Versión desktop */}
+      <nav className="hidden md:flex items-center space-x-4 lg:space-x-6">
+        {routes.map((route) => {
+          const Icon = route.icon
+          return (
+            <Link
+              key={route.href}
+              href={route.href}
+              className={cn(
+                "flex items-center text-sm font-medium transition-colors hover:text-primary",
+                route.active ? "text-primary" : "text-muted-foreground",
+              )}
+            >
+              <Icon className="mr-2 h-4 w-4" />
+              {route.label}
+            </Link>
+          )
+        })}
+      </nav>
+    </>
   )
 }
-

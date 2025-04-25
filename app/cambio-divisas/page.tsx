@@ -1,13 +1,16 @@
-import { Suspense } from "react"
+"use client"
+
+import { useState, useEffect, Suspense } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CurrencyExchangeRates } from "@/components/dashboard/currency-exchange-rates"
+import { DollarExchangeChart } from "@/components/charts/dollar-exchange-chart"
 import { getForex, getForexByMonth, type Forex } from "@/lib/db"
 import { ErrorMessage } from "@/components/ui/error-message"
 import { EmptyState } from "@/components/ui/empty-state"
-import { PeriodEmptyState } from "@/components/ui/period-empty-state"
 import { FilterableExchangeTable } from "@/components/tables/filterable-exchange-table"
-import { MonthSelector } from "@/components/month-selector"
+import { MonthYearSelector } from "@/components/month-year-selector"
+import { SensitiveValue } from "@/components/ui/sensitive-value"
 
 /**
  * Calcula el total de USD cambiados
@@ -36,36 +39,17 @@ function calcularTipoCambioPromedio(cambios: Forex[]) {
 /**
  * Calcula el promedio de dólares cambiados por mes
  */
-function calcularPromedioDolaresMensual(cambios: Forex[]) {
-  // Agrupar por mes
-  const cambiosPorMes = cambios.reduce(
-    (acc, cambio) => {
-      const fecha = new Date(cambio.date)
-      const mesAno = `${fecha.getMonth() + 1}/${fecha.getFullYear()}`
+function calcularPromedioDolaresMensual(historicalData: Array<{ month: number; year: number; cambios: Forex[] }>) {
+  if (historicalData.length === 0) return 0
 
-      if (!acc[mesAno]) {
-        acc[mesAno] = {
-          total: 0,
-          count: 0,
-        }
-      }
+  const totalDolares = historicalData.reduce((sum, monthData) => {
+    const dolaresMes = monthData.cambios
+      .filter((c) => c.currency_from === "USD")
+      .reduce((monthSum, c) => monthSum + c.amount, 0)
+    return sum + dolaresMes
+  }, 0)
 
-      if (cambio.currency_from === "USD") {
-        acc[mesAno].total += cambio.amount
-        acc[mesAno].count += 1
-      }
-
-      return acc
-    },
-    {} as Record<string, { total: number; count: number }>,
-  )
-
-  // Calcular el promedio por mes
-  const meses = Object.keys(cambiosPorMes)
-  if (meses.length === 0) return 0
-
-  const totalDolares = Object.values(cambiosPorMes).reduce((sum, mes) => sum + mes.total, 0)
-  return totalDolares / meses.length
+  return totalDolares / historicalData.length
 }
 
 /**
@@ -76,54 +60,176 @@ function calcularCambioPorcentual(valorActual: number, valorAnterior: number) {
   return ((valorActual - valorAnterior) / valorAnterior) * 100
 }
 
-export default async function CambioDivisasPage() {
-  try {
-    // Obtener el mes y año actual para filtrar
-    const now = new Date()
-    const currentYear = now.getFullYear()
-    const currentMonth = now.getMonth() + 1
+/**
+ * Obtiene los datos históricos de los últimos 5 meses
+ */
+async function obtenerDatosHistoricos(currentYear: number, currentMonth: number) {
+  const historicalData = []
 
-    // Obtener cambios del mes actual
-    const cambiosActuales = await getForexByMonth(currentYear, currentMonth)
+  for (let i = 0; i < 5; i++) {
+    let targetMonth = currentMonth - i
+    let targetYear = currentYear
 
-    // Obtener cambios del mes anterior para comparar
-    const lastMonth = currentMonth === 1 ? 12 : currentMonth - 1
-    const lastMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear
-    const cambiosAnteriores = await getForexByMonth(lastMonthYear, lastMonth)
+    while (targetMonth <= 0) {
+      targetMonth += 12
+      targetYear -= 1
+    }
 
-    // Obtener todos los cambios para el cálculo del promedio mensual
-    const todosLosCambios = await getForex()
+    const cambiosMes = await getForexByMonth(targetYear, targetMonth)
 
-    // Verificar si hay cambios
-    const hayCambios = todosLosCambios.length > 0
+    historicalData.push({
+      month: targetMonth,
+      year: targetYear,
+      cambios: cambiosMes,
+    })
+  }
 
-    // Verificar si hay cambios en el periodo actual
-    const hayCambiosEnPeriodo = cambiosActuales.length > 0
+  return historicalData
+}
 
-    // Calcular métricas actuales
-    const totalUSDCambiados = calcularTotalUSDCambiados(cambiosActuales)
-    const totalARSRecibidos = calcularTotalARSRecibidos(cambiosActuales)
-    const tipoCambioPromedio = calcularTipoCambioPromedio(cambiosActuales)
-    const promedioDolaresMensual = calcularPromedioDolaresMensual(todosLosCambios)
+export default function CambioDivisasPage() {
+  const [isLoading, setIsLoading] = useState(true)
+  const [cambiosActuales, setCambiosActuales] = useState<Forex[]>([])
+  const [cambiosAnteriores, setCambiosAnteriores] = useState<Forex[]>([])
+  const [todosLosCambios, setTodosLosCambios] = useState<Forex[]>([])
+  const [historicalData, setHistoricalData] = useState<Array<{ month: number; year: number; cambios: Forex[] }>>([])
+  const [error, setError] = useState<Error | null>(null)
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1)
 
-    // Calcular métricas del mes anterior (para comparación)
-    const totalUSDCambiadosAnterior = calcularTotalUSDCambiados(cambiosAnteriores)
-    const totalARSRecibidosAnterior = calcularTotalARSRecibidos(cambiosAnteriores)
-    const tipoCambioPromedioAnterior = calcularTipoCambioPromedio(cambiosAnteriores)
+  // Función para cargar datos según el mes y año seleccionados
+  const loadData = async (year: number, month: number) => {
+    setIsLoading(true)
+    try {
+      // Obtener cambios del mes seleccionado
+      const cambiosActualesData = await getForexByMonth(year, month)
+      setCambiosActuales(cambiosActualesData)
 
-    // Calcular cambios porcentuales
-    const cambioUSD = calcularCambioPorcentual(totalUSDCambiados, totalUSDCambiadosAnterior)
-    const cambioARS = calcularCambioPorcentual(totalARSRecibidos, totalARSRecibidosAnterior)
-    const cambioTipoCambio = calcularCambioPorcentual(tipoCambioPromedio, tipoCambioPromedioAnterior)
+      // Obtener cambios del mes anterior para comparar
+      let lastMonth = month - 1
+      let lastMonthYear = year
+      if (lastMonth === 0) {
+        lastMonth = 12
+        lastMonthYear = year - 1
+      }
 
+      const cambiosAnterioresData = await getForexByMonth(lastMonthYear, lastMonth)
+      setCambiosAnteriores(cambiosAnterioresData)
+
+      // Obtener todos los cambios
+      const todosLosCambiosData = await getForex()
+      setTodosLosCambios(todosLosCambiosData)
+
+      // Obtener datos históricos de los últimos 5 meses
+      const historicalDataResult = await obtenerDatosHistoricos(year, month)
+      setHistoricalData(historicalDataResult)
+    } catch (err) {
+      console.error("Error en la página de cambio de divisas:", err)
+      setError(err instanceof Error ? err : new Error("Error desconocido al cargar datos"))
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Manejar cambio de mes/año
+  const handleMonthYearChange = (year: number, month: number) => {
+    setSelectedYear(year)
+    setSelectedMonth(month)
+  }
+
+  // Cargar datos cuando cambia el mes/año seleccionado
+  useEffect(() => {
+    loadData(selectedYear, selectedMonth)
+  }, [selectedYear, selectedMonth])
+
+  // Verificar si hay cambios
+  const hayCambios = todosLosCambios.length > 0
+
+  // Verificar si hay cambios en el periodo actual
+  const hayCambiosEnPeriodo = cambiosActuales.length > 0
+
+  // Calcular métricas actuales
+  const totalUSDCambiados = calcularTotalUSDCambiados(cambiosActuales)
+  const totalARSRecibidos = calcularTotalARSRecibidos(cambiosActuales)
+  const tipoCambioPromedio = calcularTipoCambioPromedio(cambiosActuales)
+  const promedioDolaresMensual = calcularPromedioDolaresMensual(historicalData)
+
+  // Calcular métricas del mes anterior (para comparación)
+  const totalUSDCambiadosAnterior = calcularTotalUSDCambiados(cambiosAnteriores)
+  const totalARSRecibidosAnterior = calcularTotalARSRecibidos(cambiosAnteriores)
+  const tipoCambioPromedioAnterior = calcularTipoCambioPromedio(cambiosAnteriores)
+
+  // Calcular cambios porcentuales
+  const cambioUSD = calcularCambioPorcentual(totalUSDCambiados, totalUSDCambiadosAnterior)
+  const cambioARS = calcularCambioPorcentual(totalARSRecibidos, totalARSRecibidosAnterior)
+  const cambioTipoCambio = calcularCambioPorcentual(tipoCambioPromedio, tipoCambioPromedioAnterior)
+
+  // Preparar datos para los gráficos
+  const exchangeRateChartData = historicalData
+    .map((monthData) => {
+      const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+      const monthName = monthNames[monthData.month - 1]
+      const yearShort = monthData.year.toString().slice(2)
+      const label = `${monthName}/${yearShort}`
+
+      const tipoCambio = calcularTipoCambioPromedio(monthData.cambios)
+
+      return {
+        date: label,
+        rate: tipoCambio,
+      }
+    })
+    .reverse()
+
+  const dollarExchangeChartData = historicalData
+    .map((monthData) => {
+      const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+      const monthName = monthNames[monthData.month - 1]
+      const yearShort = monthData.year.toString().slice(2)
+      const label = `${monthName}/${yearShort}`
+
+      const dolaresCambiados = calcularTotalUSDCambiados(monthData.cambios)
+
+      return {
+        date: label,
+        amount: dolaresCambiados,
+      }
+    })
+    .reverse()
+
+  if (error) {
     return (
       <div className="flex flex-col">
-        <div className="flex flex-col md:flex-row md:items-center justify-between space-y-2 md:space-y-0 py-4">
+        <div className="flex items-center justify-between space-y-2 py-4">
           <h2 className="text-3xl font-bold tracking-tight">Cambio de Divisas</h2>
-          <div className="flex items-center space-x-2">
-            <MonthSelector />
-          </div>
         </div>
+        <ErrorMessage
+          title="Error al cargar los datos"
+          description={`Ha ocurrido un error al cargar los datos de cambio de divisas: ${error.message}`}
+          retry={() => loadData(selectedYear, selectedMonth)}
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col">
+      <div className="flex flex-col md:flex-row md:items-center justify-between space-y-2 md:space-y-0 py-4">
+        <h2 className="text-3xl font-bold tracking-tight">Cambio de Divisas</h2>
+        <div className="flex items-center space-x-2">
+          <MonthYearSelector
+            onMonthYearChange={handleMonthYearChange}
+            initialYear={selectedYear}
+            initialMonth={selectedMonth}
+          />
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      ) : (
         <Tabs defaultValue="resumen" className="space-y-4">
           <TabsList className="flex flex-wrap">
             <TabsTrigger value="resumen">Resumen</TabsTrigger>
@@ -136,7 +242,12 @@ export default async function CambioDivisasPage() {
                   <CardTitle className="text-sm font-medium">USD Cambiados</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">${totalUSDCambiados.toLocaleString()}</div>
+                  <div className="text-2xl font-bold">
+                    <SensitiveValue
+                      value={totalUSDCambiados}
+                      formatter={(value) => `$${Number(value).toLocaleString()}`}
+                    />
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     {cambioUSD >= 0 ? "+" : ""}
                     {cambioUSD.toFixed(1)}% desde el mes pasado
@@ -148,7 +259,12 @@ export default async function CambioDivisasPage() {
                   <CardTitle className="text-sm font-medium">ARS Recibidos</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">${totalARSRecibidos.toLocaleString()}</div>
+                  <div className="text-2xl font-bold">
+                    <SensitiveValue
+                      value={totalARSRecibidos}
+                      formatter={(value) => `$${Number(value).toLocaleString()}`}
+                    />
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     {cambioARS >= 0 ? "+" : ""}
                     {cambioARS.toFixed(1)}% desde el mes pasado
@@ -160,7 +276,9 @@ export default async function CambioDivisasPage() {
                   <CardTitle className="text-sm font-medium">Tipo de Cambio Promedio</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{tipoCambioPromedio.toLocaleString()}</div>
+                  <div className="text-2xl font-bold">
+                    <SensitiveValue value={tipoCambioPromedio} formatter={(value) => Number(value).toLocaleString()} />
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     {cambioTipoCambio >= 0 ? "+" : ""}
                     {cambioTipoCambio.toFixed(1)}% desde el mes pasado
@@ -172,29 +290,45 @@ export default async function CambioDivisasPage() {
                   <CardTitle className="text-sm font-medium">Promedio USD Mensual</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">${promedioDolaresMensual.toFixed(2)}</div>
+                  <div className="text-2xl font-bold">
+                    <SensitiveValue
+                      value={promedioDolaresMensual}
+                      formatter={(value) => `$${Number(value).toFixed(2)}`}
+                    />
+                  </div>
                   <p className="text-xs text-muted-foreground">Promedio de USD cambiados por mes</p>
                 </CardContent>
               </Card>
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-              <Card className="col-span-7">
+              <Card className="col-span-7 lg:col-span-4">
                 <CardHeader>
                   <CardTitle>Evolución del Tipo de Cambio</CardTitle>
                   <CardDescription>Tipo de cambio USD/ARS a lo largo del tiempo</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {hayCambios ? (
-                    hayCambiosEnPeriodo ? (
-                      <Suspense fallback={<div>Cargando gráfico...</div>}>
-                        <CurrencyExchangeRates data={cambiosActuales} />
-                      </Suspense>
-                    ) : (
-                      <PeriodEmptyState
-                        title="No hay datos en el período seleccionado"
-                        description="No se encontraron operaciones de cambio de divisas en el período de tiempo seleccionado. Prueba con otro rango de fechas."
-                      />
-                    )
+                  {exchangeRateChartData.length > 0 ? (
+                    <Suspense fallback={<div>Cargando gráfico...</div>}>
+                      <CurrencyExchangeRates data={exchangeRateChartData} />
+                    </Suspense>
+                  ) : (
+                    <EmptyState
+                      title="No hay datos para mostrar"
+                      description="No hay operaciones de cambio de divisas registradas."
+                    />
+                  )}
+                </CardContent>
+              </Card>
+              <Card className="col-span-7 lg:col-span-3">
+                <CardHeader>
+                  <CardTitle>Dólares Cambiados por Mes</CardTitle>
+                  <CardDescription>Cantidad de USD cambiados en los últimos meses</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {dollarExchangeChartData.length > 0 ? (
+                    <Suspense fallback={<div>Cargando gráfico...</div>}>
+                      <DollarExchangeChart data={dollarExchangeChartData} />
+                    </Suspense>
                   ) : (
                     <EmptyState
                       title="No hay datos para mostrar"
@@ -214,7 +348,7 @@ export default async function CambioDivisasPage() {
               <CardContent>
                 {hayCambios ? (
                   <Suspense fallback={<div>Cargando tabla...</div>}>
-                    <FilterableExchangeTable data={todosLosCambios} />
+                    <FilterableExchangeTable data={todosLosCambios} showDateFilter={false} />
                   </Suspense>
                 ) : (
                   <EmptyState
@@ -226,22 +360,7 @@ export default async function CambioDivisasPage() {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
-    )
-  } catch (error) {
-    console.error("Error en la página de cambio de divisas:", error)
-    return (
-      <div className="flex flex-col">
-        <div className="flex items-center justify-between space-y-2 py-4">
-          <h2 className="text-3xl font-bold tracking-tight">Cambio de Divisas</h2>
-        </div>
-        <ErrorMessage
-          title="Error al cargar los datos"
-          description="Ha ocurrido un error al cargar los datos de cambio de divisas. Por favor, intenta nuevamente más tarde."
-          retry={() => window.location.reload()}
-        />
-      </div>
-    )
-  }
+      )}
+    </div>
+  )
 }
-

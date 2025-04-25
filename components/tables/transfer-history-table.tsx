@@ -26,13 +26,9 @@ import {
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import type { Transfer } from "@/lib/db"
+import { SensitiveValue } from "@/components/ui/sensitive-value"
 
 export const columns: ColumnDef<Transfer>[] = [
-  {
-    accessorKey: "id",
-    header: "ID",
-    cell: ({ row }) => <div className="font-mono text-xs">{row.getValue("id").substring(0, 8)}...</div>,
-  },
   {
     accessorKey: "date",
     header: ({ column }) => {
@@ -51,10 +47,18 @@ export const columns: ColumnDef<Transfer>[] = [
   {
     accessorKey: "wallet_from",
     header: "Origen",
+    cell: ({ row }) => {
+      const walletFrom = row.getValue("wallet_from")
+      return walletFrom ? <div>{walletFrom}</div> : <div className="text-muted-foreground italic">Externo</div>
+    },
   },
   {
     accessorKey: "wallet_to",
     header: "Destino",
+    cell: ({ row }) => {
+      const walletTo = row.getValue("wallet_to")
+      return walletTo ? <div>{walletTo}</div> : <div className="text-muted-foreground italic">Externo</div>
+    },
   },
   {
     accessorKey: "initial_amount",
@@ -72,11 +76,16 @@ export const columns: ColumnDef<Transfer>[] = [
 
       return (
         <div className="font-medium">
-          {new Intl.NumberFormat("es-AR", {
-            style: "currency",
-            currency: moneda,
-            currencyDisplay: "narrowSymbol",
-          }).format(monto)}
+          <SensitiveValue
+            value={monto}
+            formatter={(value) =>
+              new Intl.NumberFormat("es-AR", {
+                style: "currency",
+                currency: moneda,
+                currencyDisplay: "narrowSymbol",
+              }).format(Number(value))
+            }
+          />
         </div>
       )
     },
@@ -95,13 +104,22 @@ export const columns: ColumnDef<Transfer>[] = [
       const monto = Number.parseFloat(row.getValue("final_amount"))
       const moneda = row.getValue("currency") as string
 
+      if (monto === 0) {
+        return <span className="text-muted-foreground">N/A</span>
+      }
+
       return (
         <div className="font-medium">
-          {new Intl.NumberFormat("es-AR", {
-            style: "currency",
-            currency: moneda,
-            currencyDisplay: "narrowSymbol",
-          }).format(monto)}
+          <SensitiveValue
+            value={monto}
+            formatter={(value) =>
+              new Intl.NumberFormat("es-AR", {
+                style: "currency",
+                currency: moneda,
+                currencyDisplay: "narrowSymbol",
+              }).format(Number(value))
+            }
+          />
         </div>
       )
     },
@@ -123,16 +141,30 @@ export const columns: ColumnDef<Transfer>[] = [
     cell: ({ row }) => {
       const montoInicial = Number.parseFloat(row.getValue("initial_amount"))
       const montoFinal = Number.parseFloat(row.getValue("final_amount"))
-      const comision = montoInicial - montoFinal
       const moneda = row.getValue("currency") as string
+
+      const esComisionNoCalculada = montoFinal === 0
+
+      if (esComisionNoCalculada) {
+        return <span className="text-muted-foreground">N/A</span>
+      }
+
+      const comision = montoInicial - montoFinal
+      const porcentajeComision = montoInicial > 0 ? (comision / montoInicial) * 100 : 0
 
       return (
         <div className="font-medium">
-          {new Intl.NumberFormat("es-AR", {
-            style: "currency",
-            currency: moneda,
-            currencyDisplay: "narrowSymbol",
-          }).format(comision)}
+          <SensitiveValue
+            value={comision}
+            formatter={(value) =>
+              new Intl.NumberFormat("es-AR", {
+                style: "currency",
+                currency: moneda,
+                currencyDisplay: "narrowSymbol",
+              }).format(Number(value))
+            }
+          />
+          <span className="text-xs text-muted-foreground ml-1">({porcentajeComision.toFixed(2)}%)</span>
         </div>
       )
     },
@@ -202,7 +234,7 @@ export function TransferHistoryTable({ data }: TransferHistoryTableProps) {
           className="max-w-sm"
         />
       </div>
-      <div className="rounded-md border">
+      <div className="overflow-x-auto rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -257,4 +289,3 @@ export function TransferHistoryTable({ data }: TransferHistoryTableProps) {
     </div>
   )
 }
-

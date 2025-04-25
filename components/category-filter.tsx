@@ -32,4 +32,3 @@ export function CategoryFilter({ categories, onCategoryChange }: CategoryFilterP
     </Select>
   )
 }
-

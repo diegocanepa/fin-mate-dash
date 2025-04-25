@@ -66,4 +66,3 @@ CREATE INDEX idx_transferencias_fecha ON transferencias(fecha);
 CREATE INDEX idx_gastos_ingresos_fecha ON gastos_ingresos(fecha);
 CREATE INDEX idx_gastos_ingresos_accion ON gastos_ingresos(accion);
 CREATE INDEX idx_inversiones_categoria ON inversiones(categoria);
-

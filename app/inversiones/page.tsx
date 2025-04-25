@@ -8,6 +8,10 @@ import { getInversiones, getInversionesByMonth, type Inversion } from "@/lib/db"
 import { ErrorMessage } from "@/components/ui/error-message"
 import { EmptyState } from "@/components/ui/empty-state"
 import { MonthSelector } from "@/components/month-selector"
+import { Construction } from "lucide-react"
+// Importar los componentes de cotizaciones
+import { CryptoPrices } from "@/components/crypto/crypto-prices"
+import { StockPrices } from "@/components/stocks/stock-prices"
 
 /**
  * Calcula el valor total de todas las inversiones
@@ -41,20 +45,57 @@ function calcularRendimientoMensual(inversiones: Inversion[], inversionesAnterio
 }
 
 /**
- * Prepara los datos de inversiones para mostrar en la interfaz
+ * Calcula el balance de inversiones por instrumento
  */
-function prepararDatosInversiones(inversiones: Inversion[]) {
-  return inversiones.map((inv) => ({
-    id: inv.id,
-    nombre: inv.description,
-    categoria: inv.category,
-    plataforma: inv.platform,
-    cantidad: inv.amout,
-    precio_unidad: inv.price,
-    valor_total: inv.amout * inv.price,
-    moneda: inv.currency,
-    fecha_compra: new Date(inv.date).toISOString().split("T")[0],
-  }))
+function calcularBalanceInversiones(inversiones: Inversion[]) {
+  // Ordenar inversiones de más antiguas a más nuevas
+  const inversionesOrdenadas = [...inversiones].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+  // Crear un diccionario para almacenar el balance por instrumento
+  const balancePorInstrumento: Record<
+    string,
+    {
+      nombre: string
+      categoria: string
+      plataforma: string
+      moneda: string
+      cantidad: number
+      valorTotal: number
+    }
+  > = {}
+
+  // Procesar cada inversión
+  inversionesOrdenadas.forEach((inv) => {
+    const clave = `${inv.description}-${inv.platform}-${inv.category}`
+
+    if (!balancePorInstrumento[clave]) {
+      balancePorInstrumento[clave] = {
+        nombre: inv.description,
+        categoria: inv.category,
+        plataforma: inv.platform,
+        moneda: inv.currency,
+        cantidad: 0,
+        valorTotal: 0,
+      }
+    }
+
+    // Sumar o restar según sea compra o venta
+    if (inv.action === "Compra") {
+      balancePorInstrumento[clave].cantidad += inv.amout
+      balancePorInstrumento[clave].valorTotal += inv.amout * inv.price
+    } else if (inv.action === "Venta") {
+      balancePorInstrumento[clave].cantidad -= inv.amout
+      // No restamos el valor total porque queremos mantener el costo de adquisición
+    }
+  })
+
+  // Convertir a array y filtrar solo los que tienen cantidad > 0
+  return Object.values(balancePorInstrumento)
+    .filter((inv) => inv.cantidad > 0)
+    .map((inv) => ({
+      ...inv,
+      precioPromedio: inv.cantidad > 0 ? inv.valorTotal / inv.cantidad : 0,
+    }))
 }
 
 export default async function InversionesPage() {
@@ -72,24 +113,23 @@ export default async function InversionesPage() {
     const lastMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear
     const inversionesAnteriores = await getInversionesByMonth(lastMonthYear, lastMonth)
 
-    // Obtener todas las inversiones activas
+    // Obtener todas las inversiones
     const todasLasInversiones = await getInversiones()
-    const inversionesActivas = todasLasInversiones.filter((inv) => inv.action === "Compra")
+
+    // Calcular el balance de inversiones
+    const balanceInversiones = calcularBalanceInversiones(todasLasInversiones)
 
     // Verificar si hay inversiones
-    const hayInversiones = inversionesActivas.length > 0
-
-    // Preparar datos para la interfaz
-    const inversiones = prepararDatosInversiones(inversionesActivas)
+    const hayInversiones = balanceInversiones.length > 0
 
     // Calcular métricas
-    const totalInvertido = calcularTotalInvertido(inversionesActivas)
-    const numInversionesActivas = calcularInversionesActivas(inversionesActivas)
+    const totalInvertido = balanceInversiones.reduce((sum, inv) => sum + inv.valorTotal, 0)
+    const numInversionesActivas = balanceInversiones.length
     const rendimientoMensual = calcularRendimientoMensual(inversionesActuales, inversionesAnteriores)
 
     return (
       <div className="flex flex-col">
-        <div className="flex items-center justify-between space-y-2 py-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between space-y-2 md:space-y-0 py-4">
           <h2 className="text-3xl font-bold tracking-tight">Inversiones</h2>
           <div className="flex items-center space-x-2">
             <MonthSelector />
@@ -98,6 +138,7 @@ export default async function InversionesPage() {
         <Tabs defaultValue="resumen" className="space-y-4">
           <TabsList className="flex flex-wrap">
             <TabsTrigger value="resumen">Resumen</TabsTrigger>
+            <TabsTrigger value="cotizaciones">Cotizaciones</TabsTrigger>
             <TabsTrigger value="acciones">Acciones</TabsTrigger>
             <TabsTrigger value="bonos">Bonos</TabsTrigger>
             <TabsTrigger value="cripto">Criptomonedas</TabsTrigger>
@@ -123,24 +164,16 @@ export default async function InversionesPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{numInversionesActivas}</div>
-                  <p className="text-xs text-muted-foreground">
-                    {numInversionesActivas - calcularInversionesActivas(inversionesAnteriores) >= 0 ? "+" : ""}
-                    {numInversionesActivas - calcularInversionesActivas(inversionesAnteriores)} desde el mes pasado
-                  </p>
+                  <p className="text-xs text-muted-foreground">Instrumentos con posiciones abiertas</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Rendimiento Mensual</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {rendimientoMensual.valor >= 0 ? "+" : ""}${Math.abs(rendimientoMensual.valor).toLocaleString()}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {rendimientoMensual.porcentaje >= 0 ? "+" : ""}
-                    {rendimientoMensual.porcentaje.toFixed(1)}% este mes
-                  </p>
+                <CardContent className="flex flex-col items-center justify-center py-2">
+                  <Construction className="h-10 w-10 text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground text-center">Estamos desarrollando esta funcionalidad</p>
                 </CardContent>
               </Card>
             </div>
@@ -150,7 +183,7 @@ export default async function InversionesPage() {
                   <CardTitle>Detalle de Inversiones</CardTitle>
                   <CardDescription>Monto invertido en cada activo</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="overflow-auto">
                   {hayInversiones ? (
                     <Table>
                       <TableHeader>
@@ -158,18 +191,22 @@ export default async function InversionesPage() {
                           <TableHead>Nombre</TableHead>
                           <TableHead>Categoría</TableHead>
                           <TableHead>Plataforma</TableHead>
-                          <TableHead className="text-right">Valor (USD)</TableHead>
+                          <TableHead>Cantidad</TableHead>
+                          <TableHead>Precio Promedio</TableHead>
+                          <TableHead className="text-right">Valor Total</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {inversiones.map((inversion) => (
-                          <TableRow key={inversion.id}>
+                        {balanceInversiones.map((inversion, index) => (
+                          <TableRow key={index}>
                             <TableCell className="font-medium">{inversion.nombre}</TableCell>
                             <TableCell>
                               <Badge variant="outline">{inversion.categoria}</Badge>
                             </TableCell>
                             <TableCell>{inversion.plataforma}</TableCell>
-                            <TableCell className="text-right">${inversion.valor_total.toLocaleString()}</TableCell>
+                            <TableCell>{inversion.cantidad.toLocaleString()}</TableCell>
+                            <TableCell>${inversion.precioPromedio.toFixed(2)}</TableCell>
+                            <TableCell className="text-right">${inversion.valorTotal.toLocaleString()}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -190,25 +227,33 @@ export default async function InversionesPage() {
                 <CardContent>
                   {hayInversiones ? (
                     <>
-                      <div className="space-y-4 mb-6">
-                        {inversiones.map((inversion) => (
-                          <div key={inversion.id} className="flex items-center justify-between">
+                      <div className="space-y-4 mb-6 max-h-[200px] overflow-y-auto">
+                        {balanceInversiones.map((inversion, index) => (
+                          <div key={index} className="flex items-center justify-between">
                             <div className="flex items-center">
                               <Badge variant="outline" className="mr-2">
                                 {inversion.nombre}
                               </Badge>
                             </div>
                             <div className="font-medium">
-                              ${inversion.valor_total.toLocaleString()}
+                              ${inversion.valorTotal.toLocaleString()}
                               <span className="text-xs text-muted-foreground ml-2">
-                                ({((inversion.valor_total / totalInvertido) * 100).toFixed(1)}%)
+                                ({((inversion.valorTotal / totalInvertido) * 100).toFixed(1)}%)
                               </span>
                             </div>
                           </div>
                         ))}
                       </div>
                       <Suspense fallback={<div>Cargando gráfico...</div>}>
-                        <InvestmentDistributionDetailed data={inversiones} />
+                        <InvestmentDistributionDetailed
+                          data={balanceInversiones.map((inv) => ({
+                            id: inv.nombre,
+                            nombre: inv.nombre,
+                            categoria: inv.categoria,
+                            valor_total: inv.valorTotal,
+                            moneda: inv.moneda,
+                          }))}
+                        />
                       </Suspense>
                     </>
                   ) : (
@@ -221,19 +266,62 @@ export default async function InversionesPage() {
               </Card>
             </div>
           </TabsContent>
+
+          {/* Nueva pestaña de cotizaciones */}
+          <TabsContent value="cotizaciones" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Cotizaciones en Tiempo Real</CardTitle>
+                <CardDescription>Precios actuales de acciones, bonos y ETFs</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Suspense
+                  fallback={<div className="flex justify-center items-center h-40">Cargando cotizaciones...</div>}
+                >
+                  <StockPrices />
+                </Suspense>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="acciones" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>Inversiones en Acciones</CardTitle>
                 <CardDescription>Detalle de tus inversiones en acciones</CardDescription>
               </CardHeader>
-              <CardContent className="flex items-center justify-center py-10">
-                <div className="text-center">
-                  <h3 className="text-lg font-medium mb-2">Estamos trabajando en esta sección</h3>
-                  <p className="text-muted-foreground">
-                    Pronto podrás ver el detalle completo de tus inversiones en acciones.
-                  </p>
-                </div>
+              <CardContent>
+                {hayInversiones ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nombre</TableHead>
+                        <TableHead>Plataforma</TableHead>
+                        <TableHead>Cantidad</TableHead>
+                        <TableHead>Precio Promedio</TableHead>
+                        <TableHead className="text-right">Valor Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {balanceInversiones
+                        .filter((inv) => inv.categoria === "Acciones")
+                        .map((inversion, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium">{inversion.nombre}</TableCell>
+                            <TableCell>{inversion.plataforma}</TableCell>
+                            <TableCell>{inversion.cantidad.toLocaleString()}</TableCell>
+                            <TableCell>${inversion.precioPromedio.toFixed(2)}</TableCell>
+                            <TableCell className="text-right">${inversion.valorTotal.toLocaleString()}</TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <EmptyState
+                    title="No hay inversiones en acciones"
+                    description="Agrega tu primera inversión en acciones para comenzar a hacer un seguimiento."
+                  />
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -243,29 +331,88 @@ export default async function InversionesPage() {
                 <CardTitle>Inversiones en Bonos</CardTitle>
                 <CardDescription>Detalle de tus inversiones en bonos</CardDescription>
               </CardHeader>
-              <CardContent className="flex items-center justify-center py-10">
-                <div className="text-center">
-                  <h3 className="text-lg font-medium mb-2">Estamos trabajando en esta sección</h3>
-                  <p className="text-muted-foreground">
-                    Pronto podrás ver el detalle completo de tus inversiones en bonos.
-                  </p>
-                </div>
+              <CardContent>
+                {hayInversiones ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nombre</TableHead>
+                        <TableHead>Plataforma</TableHead>
+                        <TableHead>Cantidad</TableHead>
+                        <TableHead>Precio Promedio</TableHead>
+                        <TableHead className="text-right">Valor Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {balanceInversiones
+                        .filter((inv) => inv.categoria === "Bonos")
+                        .map((inversion, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium">{inversion.nombre}</TableCell>
+                            <TableCell>{inversion.plataforma}</TableCell>
+                            <TableCell>{inversion.cantidad.toLocaleString()}</TableCell>
+                            <TableCell>${inversion.precioPromedio.toFixed(2)}</TableCell>
+                            <TableCell className="text-right">${inversion.valorTotal.toLocaleString()}</TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <EmptyState
+                    title="No hay inversiones en bonos"
+                    description="Agrega tu primera inversión en bonos para comenzar a hacer un seguimiento."
+                  />
+                )}
               </CardContent>
             </Card>
           </TabsContent>
           <TabsContent value="cripto" className="space-y-4">
             <Card>
               <CardHeader>
+                <CardTitle>Cotizaciones de Criptomonedas</CardTitle>
+                <CardDescription>Precios actuales de las principales criptomonedas</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <CryptoPrices />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
                 <CardTitle>Inversiones en Criptomonedas</CardTitle>
                 <CardDescription>Detalle de tus inversiones en criptomonedas</CardDescription>
               </CardHeader>
-              <CardContent className="flex items-center justify-center py-10">
-                <div className="text-center">
-                  <h3 className="text-lg font-medium mb-2">Estamos trabajando en esta sección</h3>
-                  <p className="text-muted-foreground">
-                    Pronto podrás ver el detalle completo de tus inversiones en criptomonedas.
-                  </p>
-                </div>
+              <CardContent>
+                {hayInversiones ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nombre</TableHead>
+                        <TableHead>Plataforma</TableHead>
+                        <TableHead>Cantidad</TableHead>
+                        <TableHead>Precio Promedio</TableHead>
+                        <TableHead className="text-right">Valor Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {balanceInversiones
+                        .filter((inv) => inv.categoria === "Cripto")
+                        .map((inversion, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium">{inversion.nombre}</TableCell>
+                            <TableCell>{inversion.plataforma}</TableCell>
+                            <TableCell>{inversion.cantidad.toLocaleString()}</TableCell>
+                            <TableCell>${inversion.precioPromedio.toFixed(2)}</TableCell>
+                            <TableCell className="text-right">${inversion.valorTotal.toLocaleString()}</TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <EmptyState
+                    title="No hay inversiones en criptomonedas"
+                    description="Agrega tu primera inversión en criptomonedas para comenzar a hacer un seguimiento."
+                  />
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -275,13 +422,38 @@ export default async function InversionesPage() {
                 <CardTitle>Inversiones en ETFs</CardTitle>
                 <CardDescription>Detalle de tus inversiones en ETFs</CardDescription>
               </CardHeader>
-              <CardContent className="flex items-center justify-center py-10">
-                <div className="text-center">
-                  <h3 className="text-lg font-medium mb-2">Estamos trabajando en esta sección</h3>
-                  <p className="text-muted-foreground">
-                    Pronto podrás ver el detalle completo de tus inversiones en ETFs.
-                  </p>
-                </div>
+              <CardContent>
+                {hayInversiones ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nombre</TableHead>
+                        <TableHead>Plataforma</TableHead>
+                        <TableHead>Cantidad</TableHead>
+                        <TableHead>Precio Promedio</TableHead>
+                        <TableHead className="text-right">Valor Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {balanceInversiones
+                        .filter((inv) => inv.categoria === "ETFs")
+                        .map((inversion, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium">{inversion.nombre}</TableCell>
+                            <TableCell>{inversion.plataforma}</TableCell>
+                            <TableCell>{inversion.cantidad.toLocaleString()}</TableCell>
+                            <TableCell>${inversion.precioPromedio.toFixed(2)}</TableCell>
+                            <TableCell className="text-right">${inversion.valorTotal.toLocaleString()}</TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <EmptyState
+                    title="No hay inversiones en ETFs"
+                    description="Agrega tu primera inversión en ETFs para comenzar a hacer un seguimiento."
+                  />
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -304,4 +476,3 @@ export default async function InversionesPage() {
     )
   }
 }
-

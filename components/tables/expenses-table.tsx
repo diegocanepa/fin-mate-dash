@@ -215,4 +215,3 @@ export function ExpensesTable({ data }: ExpensesTableProps) {
     </div>
   )
 }
-

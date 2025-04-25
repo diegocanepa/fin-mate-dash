@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import { SensitiveValue } from "@/components/ui/sensitive-value"
 import type { Billetera, Transferencia } from "@/lib/db"
 
 interface WalletSummaryProps {
@@ -32,10 +33,15 @@ export function WalletSummary({ billeteras, transferencias }: WalletSummaryProps
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {new Intl.NumberFormat("es-AR", {
-                  style: "currency",
-                  currency: wallet.moneda,
-                }).format(wallet.saldo)}
+                <SensitiveValue
+                  value={wallet.saldo}
+                  formatter={(value) =>
+                    new Intl.NumberFormat("es-AR", {
+                      style: "currency",
+                      currency: wallet.moneda,
+                    }).format(Number(value))
+                  }
+                />
               </div>
               <Progress value={percentage} className="mt-2" />
               <p className="text-xs text-muted-foreground mt-2">{percentage.toFixed(1)}% del total</p>
@@ -46,4 +52,3 @@ export function WalletSummary({ billeteras, transferencias }: WalletSummaryProps
     </div>
   )
 }
-

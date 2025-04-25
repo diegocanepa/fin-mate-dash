@@ -1,7 +1,7 @@
 "use client"
 
-import { Cell, Pie, PieChart } from "recharts"
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { Cell, Pie, PieChart, Legend, Tooltip } from "recharts"
+import { ChartContainer } from "@/components/ui/chart"
 
 // Datos de ejemplo - en producción vendrían de la API
 const data = [
@@ -21,6 +21,29 @@ const COLORS = [
 ]
 
 export function ExpensesByCategory() {
+  // Calcular el total para los porcentajes
+  const total = data.reduce((sum, item) => sum + item.value, 0)
+
+  // Añadir porcentajes a los datos
+  const dataWithPercentages = data.map((item) => ({
+    ...item,
+    percentage: ((item.value / total) * 100).toFixed(1),
+  }))
+
+  // Renderizador personalizado para las etiquetas
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, name }) => {
+    const RADIAN = Math.PI / 180
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5
+    const x = cx + radius * Math.cos(-midAngle * RADIAN)
+    const y = cy + radius * Math.sin(-midAngle * RADIAN)
+
+    return (
+      <text x={x} y={y} fill="white" textAnchor={x > cx ? "start" : "end"} dominantBaseline="central" fontSize={12}>
+        {`${name} (${(percent * 100).toFixed(1)}%)`}
+      </text>
+    )
+  }
+
   return (
     <ChartContainer
       config={{
@@ -48,14 +71,35 @@ export function ExpensesByCategory() {
       className="h-[300px]"
     >
       <PieChart>
-        <Pie data={data} cx="50%" cy="50%" labelLine={false} outerRadius={80} fill="#8884d8" dataKey="value">
-          {data.map((entry, index) => (
+        <Pie
+          data={dataWithPercentages}
+          cx="50%"
+          cy="50%"
+          labelLine={true}
+          outerRadius={80}
+          fill="#8884d8"
+          dataKey="value"
+          nameKey="name"
+          label={renderCustomizedLabel}
+        >
+          {dataWithPercentages.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>
-        <ChartTooltip content={<ChartTooltipContent />} />
+        <Tooltip
+          formatter={(value, name, props) => [`$${value.toLocaleString()}`, `${name} (${props.payload.percentage}%)`]}
+        />
+        <Legend
+          layout="vertical"
+          verticalAlign="middle"
+          align="right"
+          formatter={(value, entry, index) => (
+            <span style={{ color: COLORS[index % COLORS.length] }}>
+              {value}: {dataWithPercentages[index].percentage}%
+            </span>
+          )}
+        />
       </PieChart>
     </ChartContainer>
   )
 }
-

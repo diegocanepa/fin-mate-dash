@@ -49,4 +49,3 @@ export function CategoryTransactions({ data }: CategoryTransactionsProps) {
     </Card>
   )
 }
-

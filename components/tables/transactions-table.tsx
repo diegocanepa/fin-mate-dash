@@ -26,35 +26,34 @@ import {
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import type { Transaction } from "@/lib/db"
+import { SensitiveValue } from "@/components/ui/sensitive-value"
+
+// Tipo para las transacciones
+export type Transaction = {
+  id: string
+  description: string
+  amount: number
+  currency: string
+  category: string
+  date: string
+  action: string
+}
 
 export const columns: ColumnDef<Transaction>[] = [
   {
-    accessorKey: "id",
-    header: "ID",
-    cell: ({ row }) => <div className="font-mono text-xs">{row.getValue("id").substring(0, 8)}...</div>,
-  },
-  {
     accessorKey: "date",
-    header: ({ column }) => {
-      return (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-          Fecha
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      )
-    },
+    header: "Fecha",
     cell: ({ row }) => {
-      const fecha = new Date(row.getValue("date"))
-      return <div>{fecha.toLocaleDateString()}</div>
+      const date = new Date(row.getValue("date"))
+      return <div>{date.toLocaleDateString()}</div>
     },
   },
   {
     accessorKey: "action",
     header: "Tipo",
     cell: ({ row }) => {
-      const accion = row.getValue("action") as string
-      return <Badge variant={accion === "Gasto" ? "destructive" : "default"}>{accion}</Badge>
+      const action = row.getValue("action") as string
+      return <Badge variant={action === "gasto" ? "destructive" : "default"}>{action}</Badge>
     },
   },
   {
@@ -84,26 +83,30 @@ export const columns: ColumnDef<Transaction>[] = [
     },
     cell: ({ row }) => {
       const amount = Number.parseFloat(row.getValue("amount"))
-      const accion = row.getValue("action") as string
-      const moneda = row.getValue("currency") as string
+      const action = row.getValue("action") as string
+      const currency = row.getValue("currency") as string
 
       // Format the amount as a currency
       const formatted = new Intl.NumberFormat("es-AR", {
         style: "currency",
-        currency: moneda,
+        currency: currency,
       }).format(amount)
 
       return (
-        <div className={accion === "Gasto" ? "text-red-500 font-medium" : "text-green-500 font-medium"}>
-          {accion === "Gasto" ? "-" : "+"}
-          {formatted}
+        <div className={action === "gasto" ? "text-red-500 font-medium" : "text-green-500 font-medium"}>
+          {action === "gasto" ? "-" : "+"}
+          <SensitiveValue
+            value={amount}
+            formatter={(value) =>
+              new Intl.NumberFormat("es-AR", {
+                style: "currency",
+                currency: currency,
+              }).format(Number(value))
+            }
+          />
         </div>
       )
     },
-  },
-  {
-    accessorKey: "currency",
-    header: "Moneda",
   },
   {
     id: "actions",
@@ -221,4 +224,3 @@ export function TransactionsTable({ data }: TransactionsTableProps) {
     </div>
   )
 }
-

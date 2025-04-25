@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
 import { ExchangeHistoryTable } from "@/components/tables/exchange-history-table"
 import { PeriodEmptyState } from "@/components/ui/period-empty-state"
@@ -8,13 +10,18 @@ import type { Forex } from "@/lib/db"
 
 interface FilterableExchangeTableProps {
   data: Forex[]
+  showDateFilter?: boolean
 }
 
-export function FilterableExchangeTable({ data }: FilterableExchangeTableProps) {
+export function FilterableExchangeTable({ data, showDateFilter = true }: FilterableExchangeTableProps) {
   const [filteredData, setFilteredData] = useState<Forex[]>(data)
   const [isFiltered, setIsFiltered] = useState(false)
 
-  const handleDateRangeChange = (range: { from: Date; to: Date } | undefined) => {
+  const handleDateRangeChange = (range: { from: Date; to: Date } | undefined, e?: React.SyntheticEvent) => {
+    if (e) {
+      e.preventDefault()
+    }
+
     if (!range || !range.from || !range.to) {
       setFilteredData(data)
       setIsFiltered(false)
@@ -37,9 +44,11 @@ export function FilterableExchangeTable({ data }: FilterableExchangeTableProps) 
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
-        <DateRangePicker onChange={handleDateRangeChange} />
-      </div>
+      {showDateFilter && (
+        <div className="flex justify-end mb-4">
+          <DateRangePicker onChange={handleDateRangeChange} />
+        </div>
+      )}
 
       {filteredData.length > 0 ? (
         <ExchangeHistoryTable data={filteredData} />
@@ -55,4 +64,3 @@ export function FilterableExchangeTable({ data }: FilterableExchangeTableProps) 
     </div>
   )
 }
-

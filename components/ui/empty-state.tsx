@@ -23,4 +23,3 @@ export function EmptyState({ title, description, actionLabel, actionHref }: Empt
     </div>
   )
 }
-

@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils"
 
 interface DateRangePickerProps extends React.HTMLAttributes<HTMLDivElement> {
-  onChange?: (range: DateRange | undefined) => void
+  onChange?: (range: DateRange | undefined, event?: React.SyntheticEvent) => void
 }
 
 export function DateRangePicker({ className, onChange }: DateRangePickerProps) {
@@ -49,10 +49,10 @@ export function DateRangePicker({ className, onChange }: DateRangePickerProps) {
             mode="range"
             defaultMonth={date?.from}
             selected={date}
-            onSelect={(newDate) => {
+            onSelect={(newDate, event) => {
               setDate(newDate)
               if (onChange) {
-                onChange(newDate)
+                onChange(newDate, event)
               }
             }}
             numberOfMonths={2}
@@ -63,4 +63,3 @@ export function DateRangePicker({ className, onChange }: DateRangePickerProps) {
     </div>
   )
 }
-

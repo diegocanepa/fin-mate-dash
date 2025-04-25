@@ -98,4 +98,3 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Error al obtener datos del dashboard" }, { status: 500 })
   }
 }
-

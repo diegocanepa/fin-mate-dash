@@ -76,4 +76,3 @@ export function MonthSelector({ onChange, initialDate }: MonthSelectorProps) {
     </div>
   )
 }
-

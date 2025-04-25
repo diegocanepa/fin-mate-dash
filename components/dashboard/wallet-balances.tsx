@@ -2,6 +2,8 @@
 
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 import { ChartContainer } from "@/components/ui/chart"
+import { SensitiveValue } from "@/components/ui/sensitive-value"
+import { useVisibility } from "@/lib/visibility-context"
 import type { Billetera } from "@/lib/db"
 
 interface WalletBalancesProps {
@@ -9,10 +11,12 @@ interface WalletBalancesProps {
 }
 
 export function WalletBalances({ wallets }: WalletBalancesProps) {
+  const { isVisible } = useVisibility()
+
   // Transformar los datos de las billeteras para el gráfico
   const data = wallets.map((wallet) => ({
     name: wallet.name,
-    value: wallet.balance,
+    value: isVisible ? wallet.balance : Math.random() * 1000 + 500, // Usar valores aleatorios cuando está oculto
   }))
 
   return (
@@ -37,7 +41,7 @@ export function WalletBalances({ wallets }: WalletBalancesProps) {
         >
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="name" />
-          <YAxis />
+          <YAxis domain={isVisible ? ["auto", "auto"] : [0, 5000]} />
           <Tooltip
             content={({ active, payload }) => {
               if (active && payload && payload.length) {
@@ -50,7 +54,12 @@ export function WalletBalances({ wallets }: WalletBalancesProps) {
                       </div>
                       <div className="flex flex-col">
                         <span className="text-[0.70rem] uppercase text-muted-foreground">Saldo</span>
-                        <span className="font-bold">${payload[0].value?.toLocaleString()}</span>
+                        <span className="font-bold">
+                          <SensitiveValue
+                            value={payload[0].payload.originalValue || payload[0].value}
+                            formatter={(val) => `$${Number(val).toLocaleString()}`}
+                          />
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -65,7 +74,10 @@ export function WalletBalances({ wallets }: WalletBalancesProps) {
             radius={[4, 4, 0, 0]}
             label={{
               position: "top",
-              formatter: (value: number) => `$${value.toLocaleString()}`,
+              formatter: (value: number) => {
+                if (!isVisible) return "•••"
+                return `$${value.toLocaleString()}`
+              },
               fontSize: 12,
             }}
           />
@@ -74,4 +86,3 @@ export function WalletBalances({ wallets }: WalletBalancesProps) {
     </ChartContainer>
   )
 }
-

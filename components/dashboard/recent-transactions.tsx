@@ -91,4 +91,3 @@ export function RecentTransactions() {
     </div>
   )
 }
-

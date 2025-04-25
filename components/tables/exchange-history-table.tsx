@@ -27,9 +27,13 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import type { Forex } from "@/lib/db"
+// Importar SensitiveValue
+import { SensitiveValue } from "@/components/ui/sensitive-value"
 
 // Función para normalizar códigos de moneda
 function normalizeCurrencyCode(code: string): string {
+  if (!code) return "USD" // Valor por defecto si no hay código
+
   // Mapeo de nombres comunes a códigos ISO
   const currencyMap: Record<string, string> = {
     PESOS: "ARS",
@@ -55,23 +59,18 @@ function normalizeCurrencyCode(code: string): string {
 
 export const columns: ColumnDef<Forex>[] = [
   {
-    accessorKey: "id",
-    header: "ID",
-    cell: ({ row }) => <div className="font-mono text-xs">{row.getValue("id").substring(0, 8)}...</div>,
-  },
-  {
     accessorKey: "date",
     header: ({ column }) => {
       return (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
           Fecha
-          <ArrowUpDown className="ml-2 h-4 w-4" />
+          <ArrowUpDown className="ml-2 w-4" />
         </Button>
       )
     },
     cell: ({ row }) => {
-      const fecha = new Date(row.getValue("date"))
-      return <div>{fecha.toLocaleDateString()}</div>
+      const fecha = row.getValue("date") ? new Date(row.getValue("date")) : null
+      return <div>{fecha ? fecha.toLocaleDateString() : <span className="text-muted-foreground">Sin fecha</span>}</div>
     },
   },
   {
@@ -79,6 +78,7 @@ export const columns: ColumnDef<Forex>[] = [
     header: "Acción",
     cell: ({ row }) => {
       const accion = row.getValue("action") as string
+      if (!accion) return <span className="text-muted-foreground">No especificada</span>
       return <Badge variant={accion === "Compra" ? "default" : "secondary"}>{accion}</Badge>
     },
   },
@@ -92,29 +92,61 @@ export const columns: ColumnDef<Forex>[] = [
         </Button>
       )
     },
+    // Modificar las celdas relevantes
     cell: ({ row }) => {
-      const cantidad = Number.parseFloat(row.getValue("amount"))
+      const cantidad = row.getValue("amount")
       const moneda = row.getValue("currency_from") as string
+
+      // Si la cantidad no es un número válido, mostrar un mensaje
+      if (cantidad === null || cantidad === undefined || isNaN(Number(cantidad))) {
+        return <span className="text-muted-foreground">No disponible</span>
+      }
+
       const normalizedCurrency = normalizeCurrencyCode(moneda)
 
-      return (
-        <div className="font-medium">
-          {new Intl.NumberFormat("es-AR", {
-            style: "currency",
-            currency: normalizedCurrency,
-            currencyDisplay: "narrowSymbol",
-          }).format(cantidad)}
-        </div>
-      )
+      try {
+        return (
+          <div className="font-medium">
+            <SensitiveValue
+              value={Number(cantidad)}
+              formatter={(value) =>
+                new Intl.NumberFormat("es-AR", {
+                  style: "currency",
+                  currency: normalizedCurrency,
+                  currencyDisplay: "narrowSymbol",
+                }).format(Number(value))
+              }
+            />
+          </div>
+        )
+      } catch (error) {
+        // En caso de error, mostrar el valor sin formato
+        return (
+          <div className="font-medium">
+            <SensitiveValue
+              value={Number(cantidad)}
+              formatter={(value) => `${Number(value).toFixed(2)} ${moneda || ""}`}
+            />
+          </div>
+        )
+      }
     },
   },
   {
     accessorKey: "currency_from",
     header: "Moneda Origen",
+    cell: ({ row }) => {
+      const currency = row.getValue("currency_from") as string
+      return currency ? <div>{currency}</div> : <span className="text-muted-foreground">No especificada</span>
+    },
   },
   {
     accessorKey: "currency_to",
     header: "Moneda Destino",
+    cell: ({ row }) => {
+      const currency = row.getValue("currency_to") as string
+      return currency ? <div>{currency}</div> : <span className="text-muted-foreground">No especificada</span>
+    },
   },
   {
     accessorKey: "price",
@@ -127,16 +159,34 @@ export const columns: ColumnDef<Forex>[] = [
       )
     },
     cell: ({ row }) => {
-      const precio = Number.parseFloat(row.getValue("price"))
+      const precio = row.getValue("price")
+      const monedaDestino = row.getValue("currency_to") as string
 
-      return (
-        <div className="font-medium">
-          {new Intl.NumberFormat("es-AR", {
-            maximumFractionDigits: 2,
-            minimumFractionDigits: 2,
-          }).format(precio)}
-        </div>
-      )
+      // Si el precio no es un número válido, mostrar un mensaje
+      if (precio === null || precio === undefined || isNaN(Number(precio))) {
+        return <span className="text-muted-foreground">No disponible</span>
+      }
+
+      const normalizedCurrency = normalizeCurrencyCode(monedaDestino)
+
+      try {
+        return (
+          <div className="font-medium">
+            {new Intl.NumberFormat("es-AR", {
+              style: "currency",
+              currency: normalizedCurrency,
+              currencyDisplay: "narrowSymbol",
+            }).format(Number(precio))}
+          </div>
+        )
+      } catch (error) {
+        // En caso de error, mostrar el valor sin formato
+        return (
+          <div className="font-medium">
+            {Number(precio).toFixed(2)} {monedaDestino || ""}
+          </div>
+        )
+      }
     },
   },
   {
@@ -150,9 +200,22 @@ export const columns: ColumnDef<Forex>[] = [
       )
     },
     cell: ({ row }) => {
-      const amount = Number.parseFloat(row.getValue("amount"))
-      const price = Number.parseFloat(row.getValue("price"))
-      const total = amount * price
+      const amount = row.getValue("amount")
+      const price = row.getValue("price")
+
+      // Si alguno de los valores no es válido, mostrar un mensaje
+      if (
+        amount === null ||
+        amount === undefined ||
+        isNaN(Number(amount)) ||
+        price === null ||
+        price === undefined ||
+        isNaN(Number(price))
+      ) {
+        return <span className="text-muted-foreground">No disponible</span>
+      }
+
+      const total = Number(amount) * Number(price)
       const moneda = row.getValue("currency_to") as string
       const normalizedCurrency = normalizeCurrencyCode(moneda)
 
@@ -167,10 +230,10 @@ export const columns: ColumnDef<Forex>[] = [
           </div>
         )
       } catch (error) {
-        // En caso de error, mostrar el valor sin formato de moneda
+        // En caso de error, mostrar el valor sin formato
         return (
           <div className="font-medium">
-            {total.toFixed(2)} {moneda}
+            {total.toFixed(2)} {moneda || ""}
           </div>
         )
       }
@@ -179,6 +242,10 @@ export const columns: ColumnDef<Forex>[] = [
   {
     accessorKey: "description",
     header: "Descripción",
+    cell: ({ row }) => {
+      const description = row.getValue("description") as string
+      return description ? <div>{description}</div> : <span className="text-muted-foreground">Sin descripción</span>
+    },
   },
   {
     id: "actions",
@@ -241,7 +308,7 @@ export function ExchangeHistoryTable({ data }: ExchangeHistoryTableProps) {
           className="max-w-sm"
         />
       </div>
-      <div className="rounded-md border">
+      <div className="overflow-x-auto rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -296,4 +363,3 @@ export function ExchangeHistoryTable({ data }: ExchangeHistoryTableProps) {
     </div>
   )
 }
-
