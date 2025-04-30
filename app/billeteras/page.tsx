@@ -221,14 +221,14 @@ export default function BilleterasPage() {
                 <CardContent>
                   {hayBilleteras ? (
                     <>
-                      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+                      <div className="grid gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 mb-8">
                         {billeteras.map((billetera) => (
                           <Card key={billetera.name} className="border-none shadow-none">
-                            <CardHeader className="p-0">
-                              <CardTitle className="text-lg">{billetera.name}</CardTitle>
+                            <CardHeader className="p-0 sm:p-0">
+                              <CardTitle className="text-base sm:text-lg truncate">{billetera.name}</CardTitle>
                             </CardHeader>
-                            <CardContent className="p-0 pt-2">
-                              <div className="text-2xl font-bold">
+                            <CardContent className="p-0 pt-2 sm:p-0 sm:pt-2">
+                              <div className="text-xl sm:text-2xl font-bold">
                                 <SensitiveValue
                                   value={billetera.balance}
                                   formatter={(value) => `$${Number(value).toLocaleString()}`}

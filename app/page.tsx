@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { FileCode, Construction } from "lucide-react"
+import { FileCode } from "lucide-react"
 import { ENVIRONMENT } from "@/lib/supabase"
+import Image from "next/image"
 
 export default function DashboardPage() {
   // Verificar si estamos en un entorno de cliente o servidor
@@ -17,17 +18,24 @@ export default function DashboardPage() {
 
       <Card className="w-full">
         <CardHeader>
-          <CardTitle>Estamos trabajando en esta sección</CardTitle>
-          <CardDescription>El dashboard está actualmente en desarrollo</CardDescription>
+          <CardTitle>Bienvenido a FinMate</CardTitle>
+          <CardDescription>Tu asistente financiero personal</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center justify-center py-10">
-          <Construction className="h-24 w-24 text-muted-foreground mb-6" />
+          <div className="mb-6 relative">
+            <Image
+              src="/images/finmate-logo.png"
+              alt="FinMate Logo"
+              width={150}
+              height={150}
+              className="animate-pulse"
+            />
+          </div>
           <div className="text-center max-w-md">
-            <h3 className="text-xl font-medium mb-2">Próximamente</h3>
+            <h3 className="text-xl font-medium mb-2">Gestiona tus finanzas con facilidad</h3>
             <p className="text-muted-foreground mb-6">
-              Estamos desarrollando un dashboard completo con resúmenes de tus finanzas, gráficos interactivos y
-              métricas personalizadas. Mientras tanto, puedes acceder a las secciones específicas desde el menú de
-              navegación.
+              FinMate te ayuda a rastrear tus gastos, inversiones y ahorros en un solo lugar. Accede a las diferentes
+              secciones desde el menú de navegación.
             </p>
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <FileCode className="h-4 w-4" />

@@ -84,13 +84,10 @@ export const columns: ColumnDef<Transaction>[] = [
     cell: ({ row }) => {
       const amount = Number.parseFloat(row.getValue("amount"))
       const action = row.getValue("action") as string
-      const currency = row.getValue("currency") as string
+      const currency = (row.getValue("currency") as string) || "ARS"
 
-      // Format the amount as a currency
-      const formatted = new Intl.NumberFormat("es-AR", {
-        style: "currency",
-        currency: currency,
-      }).format(amount)
+      // Ensure we have a valid currency code (default to ARS if not provided or invalid)
+      const validCurrency = currency && /^[A-Z]{3}$/.test(currency) ? currency : "ARS"
 
       return (
         <div className={action === "gasto" ? "text-red-500 font-medium" : "text-green-500 font-medium"}>
@@ -100,7 +97,7 @@ export const columns: ColumnDef<Transaction>[] = [
             formatter={(value) =>
               new Intl.NumberFormat("es-AR", {
                 style: "currency",
-                currency: currency,
+                currency: validCurrency,
               }).format(Number(value))
             }
           />

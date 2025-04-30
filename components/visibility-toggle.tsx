@@ -1,8 +1,8 @@
 "use client"
 
-import { Eye, EyeOff } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { useVisibility } from "@/lib/visibility-context"
+import { Button } from "@/components/ui/button"
+import { Eye, EyeOff } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 export function VisibilityToggle() {
@@ -16,14 +16,14 @@ export function VisibilityToggle() {
             variant="ghost"
             size="icon"
             onClick={toggleVisibility}
-            className="h-9 w-9"
-            aria-label={isVisible ? "Ocultar datos sensibles" : "Mostrar datos sensibles"}
+            className="text-muted-foreground hover:text-primary"
           >
-            {isVisible ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+            {isVisible ? <Eye className="h-[1.2rem] w-[1.2rem]" /> : <EyeOff className="h-[1.2rem] w-[1.2rem]" />}
+            <span className="sr-only">{isVisible ? "Ocultar valores" : "Mostrar valores"}</span>
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          <p>{isVisible ? "Ocultar datos sensibles" : "Mostrar datos sensibles"}</p>
+          <p>{isVisible ? "Ocultar valores" : "Mostrar valores"}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

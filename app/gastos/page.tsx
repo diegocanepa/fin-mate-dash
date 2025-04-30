@@ -12,6 +12,7 @@ import { ErrorMessage } from "@/components/ui/error-message"
 import { EmptyState } from "@/components/ui/empty-state"
 import { CurrencyFilter } from "@/components/currency-filter"
 import { SensitiveValue } from "@/components/ui/sensitive-value"
+import { useMediaQuery } from "@/hooks/use-media-query"
 
 // Datos de ejemplo para usar cuando no hay conexión a la base de datos
 const mockTransactions: Transaction[] = [
@@ -96,6 +97,7 @@ export default function GastosPage() {
   const [selectedCurrencyGastos, setSelectedCurrencyGastos] = useState<string | null>(null)
   const [selectedCurrencyIngresos, setSelectedCurrencyIngresos] = useState<string | null>(null)
   const [useMockData, setUseMockData] = useState(false)
+  const isMobile = useMediaQuery("(max-width: 640px)")
 
   // Cargar datos cuando cambia el mes/año seleccionado
   useEffect(() => {
@@ -282,7 +284,7 @@ export default function GastosPage() {
 
           {/* Pestaña de Pesos */}
           <TabsContent value="pesos" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Ingresos Pesos</CardTitle>
@@ -320,7 +322,7 @@ export default function GastosPage() {
                   <CardTitle className="text-sm font-medium">Balance Pesos</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className={`text-2xl font-bold ${balancePesos >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  <div className={`text-2xl font-bold ${balancePesos >= 0 ? "text-success" : "text-warning"}`}>
                     <SensitiveValue
                       value={balancePesos}
                       formatter={(value) => `$${Number(value).toLocaleString()} ARS`}
@@ -332,8 +334,8 @@ export default function GastosPage() {
                 </CardContent>
               </Card>
             </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-              <Card className="col-span-4">
+            <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
+              <Card className="col-span-full lg:col-span-4">
                 <CardHeader>
                   <CardTitle>Ingresos vs Gastos (Pesos)</CardTitle>
                   <CardDescription>Comparativa mensual de ingresos y gastos en pesos</CardDescription>
@@ -349,7 +351,7 @@ export default function GastosPage() {
                   )}
                 </CardContent>
               </Card>
-              <Card className="col-span-3">
+              <Card className="col-span-full lg:col-span-3">
                 <CardHeader>
                   <CardTitle>Gastos por Categoría (Pesos)</CardTitle>
                   <CardDescription>Distribución de gastos en pesos del mes actual</CardDescription>
@@ -370,7 +372,7 @@ export default function GastosPage() {
 
           {/* Pestaña de Dólares */}
           <TabsContent value="dolares" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Ingresos Dólares</CardTitle>
@@ -408,7 +410,7 @@ export default function GastosPage() {
                   <CardTitle className="text-sm font-medium">Balance Dólares</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className={`text-2xl font-bold ${balanceDolares >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  <div className={`text-2xl font-bold ${balanceDolares >= 0 ? "text-success" : "text-warning"}`}>
                     <SensitiveValue
                       value={balanceDolares}
                       formatter={(value) => `$${Number(value).toLocaleString()} USD`}
@@ -420,8 +422,8 @@ export default function GastosPage() {
                 </CardContent>
               </Card>
             </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-              <Card className="col-span-4">
+            <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
+              <Card className="col-span-full lg:col-span-4">
                 <CardHeader>
                   <CardTitle>Ingresos vs Gastos (Dólares)</CardTitle>
                   <CardDescription>Comparativa mensual de ingresos y gastos en dólares</CardDescription>
@@ -437,7 +439,7 @@ export default function GastosPage() {
                   )}
                 </CardContent>
               </Card>
-              <Card className="col-span-3">
+              <Card className="col-span-full lg:col-span-3">
                 <CardHeader>
                   <CardTitle>Gastos por Categoría (Dólares)</CardTitle>
                   <CardDescription>Distribución de gastos en dólares del mes actual</CardDescription>
@@ -459,7 +461,7 @@ export default function GastosPage() {
           {/* Pestaña de Gastos */}
           <TabsContent value="gastos" className="space-y-4">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between">
                 <div>
                   <CardTitle>Listado de Gastos</CardTitle>
                   <CardDescription>Datos de gastos filtrados por moneda</CardDescription>
@@ -482,7 +484,7 @@ export default function GastosPage() {
           {/* Pestaña de Ingresos */}
           <TabsContent value="ingresos" className="space-y-4">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between">
                 <div>
                   <CardTitle>Listado de Ingresos</CardTitle>
                   <CardDescription>Datos de ingresos filtrados por moneda</CardDescription>

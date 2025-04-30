@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
 import { ChartContainer } from "@/components/ui/chart"
 import { EmptyState } from "@/components/ui/empty-state"
+import { useMediaQuery } from "@/hooks/use-media-query"
+import { ResponsiveChartContainer } from "@/components/ui/responsive-chart-container"
 
 interface GastoIngreso {
   id: number | string
@@ -32,6 +34,7 @@ interface IncomeVsExpensesChartProps {
 export function IncomeVsExpensesChart({ data, historicalData }: IncomeVsExpensesChartProps) {
   const [chartData, setChartData] = useState<any[]>([])
   const [hasData, setHasData] = useState(false)
+  const isMobile = useMediaQuery("(max-width: 640px)")
 
   useEffect(() => {
     let processedData = []
@@ -116,58 +119,67 @@ export function IncomeVsExpensesChart({ data, historicalData }: IncomeVsExpenses
     )
   }
 
+  // Limitar el número de puntos de datos en dispositivos móviles
+  const displayData = isMobile && chartData.length > 3 ? chartData.slice(-3) : chartData
+
   return (
-    <ChartContainer
-      config={{
-        ingresos: {
-          label: "Ingresos",
-          color: "hsl(var(--chart-2))",
-        },
-        gastos: {
-          label: "Gastos",
-          color: "hsl(var(--chart-3))",
-        },
-      }}
-      className="aspect-[4/3] sm:aspect-[16/9]"
-    >
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart
-          data={chartData}
-          margin={{
-            top: 20,
-            right: 30,
-            left: 20,
-            bottom: 20,
-          }}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-          <YAxis tick={{ fontSize: 12 }} />
-          <Tooltip
-            formatter={(value: number) => [`$${value.toLocaleString()}`, ``]}
-            labelFormatter={(name) => `Período: ${name}`}
-          />
-          <Legend />
-          <Area
-            type="monotone"
-            dataKey="ingresos"
-            name="Ingresos"
-            stroke="hsl(var(--chart-2))"
-            fill="hsl(var(--chart-2))"
-            fillOpacity={0.3}
-            stackId="1"
-          />
-          <Area
-            type="monotone"
-            dataKey="gastos"
-            name="Gastos"
-            stroke="hsl(var(--chart-3))"
-            fill="hsl(var(--chart-3))"
-            fillOpacity={0.3}
-            stackId="2"
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-    </ChartContainer>
+    <ResponsiveChartContainer>
+      <ChartContainer
+        config={{
+          ingresos: {
+            label: "Ingresos",
+            color: "hsl(var(--chart-2))",
+          },
+          gastos: {
+            label: "Gastos",
+            color: "hsl(var(--chart-3))",
+          },
+        }}
+        className="h-full w-full"
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart
+            data={displayData}
+            margin={{
+              top: 20,
+              right: isMobile ? 10 : 30,
+              left: isMobile ? 0 : 20,
+              bottom: 20,
+            }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="month" tick={{ fontSize: isMobile ? 10 : 12 }} interval={isMobile ? 0 : "preserveEnd"} />
+            <YAxis
+              tick={{ fontSize: isMobile ? 10 : 12 }}
+              width={isMobile ? 40 : 60}
+              tickFormatter={(value) => (isMobile ? `${value / 1000}k` : value.toLocaleString())}
+            />
+            <Tooltip
+              formatter={(value: number) => [`$${value.toLocaleString()}`, ``]}
+              labelFormatter={(name) => `Período: ${name}`}
+            />
+            <Legend wrapperStyle={{ fontSize: isMobile ? 10 : 12 }} />
+            <Area
+              type="monotone"
+              dataKey="ingresos"
+              name="Ingresos"
+              stroke="hsl(var(--chart-2))"
+              fill="hsl(var(--chart-2))"
+              fillOpacity={0.3}
+              stackId="1"
+            />
+            <Area
+              type="monotone"
+              dataKey="gastos"
+              name="Gastos"
+              stroke="hsl(var(--chart-3))"
+              fill="hsl(var(--chart-3))"
+              fillOpacity={0.3}
+              stackId="2"
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </ChartContainer>
+    </ResponsiveChartContainer>
   )
 }

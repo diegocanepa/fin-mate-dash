@@ -63,6 +63,10 @@ export function MainNav() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left">
+            <div className="flex items-center mb-6">
+              <img src="/images/finmate-logo.png" alt="FinMate Logo" className="w-8 h-8 mr-2" />
+              <span className="text-lg font-bold">FinMate</span>
+            </div>
             <div className="flex flex-col space-y-4 py-4">
               {routes.map((route) => {
                 const Icon = route.icon
@@ -72,7 +76,7 @@ export function MainNav() {
                     href={route.href}
                     className={cn(
                       "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent",
-                      route.active ? "bg-accent text-accent-foreground" : "text-muted-foreground",
+                      route.active ? "bg-primary/10 text-primary" : "text-muted-foreground",
                     )}
                     onClick={() => setOpen(false)}
                   >

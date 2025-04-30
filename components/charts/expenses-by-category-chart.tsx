@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import { Cell, Pie, PieChart, Legend, ResponsiveContainer, Tooltip } from "recharts"
 import { ChartContainer } from "@/components/ui/chart"
 import { EmptyState } from "@/components/ui/empty-state"
+import { useMediaQuery } from "@/hooks/use-media-query"
+import { ResponsiveChartContainer } from "@/components/ui/responsive-chart-container"
 
 interface GastoIngreso {
   id: number | string
@@ -27,6 +29,7 @@ interface ExpensesByCategoryChartProps {
 export function ExpensesByCategoryChart({ data }: ExpensesByCategoryChartProps) {
   const [chartData, setChartData] = useState<any[]>([])
   const [hasData, setHasData] = useState(false)
+  const isMobile = useMediaQuery("(max-width: 640px)")
 
   const COLORS = [
     "hsl(var(--chart-1))",
@@ -60,9 +63,19 @@ export function ExpensesByCategoryChart({ data }: ExpensesByCategoryChartProps) 
       }))
       .sort((a, b) => b.value - a.value)
 
-    setChartData(processedData)
-    setHasData(processedData.length > 0 && processedData.some((item) => item.value > 0))
-  }, [data])
+    // En móvil, limitar a las 5 categorías principales y agrupar el resto
+    let finalData = processedData
+    if (isMobile && processedData.length > 5) {
+      const topCategories = processedData.slice(0, 4)
+      const otherCategories = processedData.slice(4)
+      const otherValue = otherCategories.reduce((sum, item) => sum + item.value, 0)
+
+      finalData = [...topCategories, { name: "Otros", value: otherValue }]
+    }
+
+    setChartData(finalData)
+    setHasData(finalData.length > 0 && finalData.some((item) => item.value > 0))
+  }, [data, isMobile])
 
   if (!hasData) {
     return (
@@ -78,6 +91,9 @@ export function ExpensesByCategoryChart({ data }: ExpensesByCategoryChartProps) 
 
   // Renderizador personalizado para las etiquetas
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, name }) => {
+    // En móvil, no mostrar etiquetas
+    if (isMobile) return null
+
     const RADIAN = Math.PI / 180
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5
     const x = cx + radius * Math.cos(-midAngle * RADIAN)
@@ -94,57 +110,60 @@ export function ExpensesByCategoryChart({ data }: ExpensesByCategoryChartProps) 
   }
 
   return (
-    <ChartContainer
-      config={chartData.reduce(
-        (acc, item, index) => {
-          acc[item.name] = {
-            label: item.name,
-            color: COLORS[index % COLORS.length],
-          }
-          return acc
-        },
-        {} as Record<string, { label: string; color: string }>,
-      )}
-      className="h-[300px]"
-    >
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Pie
-            data={chartData}
-            cx="50%"
-            cy="50%"
-            labelLine={false}
-            outerRadius={80}
-            fill="#8884d8"
-            dataKey="value"
-            label={renderCustomizedLabel}
-          >
-            {chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-            ))}
-          </Pie>
-          <Tooltip
-            formatter={(value: number) => [`$${value.toLocaleString()}`, `Valor`]}
-            labelFormatter={(name) =>
-              `${name} (${(((chartData.find((item) => item.name === name)?.value || 0) / total) * 100).toFixed(1)}%)`
+    <ResponsiveChartContainer mobileAspectRatio="aspect-square">
+      <ChartContainer
+        config={chartData.reduce(
+          (acc, item, index) => {
+            acc[item.name] = {
+              label: item.name,
+              color: COLORS[index % COLORS.length],
             }
-          />
-          <Legend
-            layout="vertical"
-            verticalAlign="middle"
-            align="right"
-            formatter={(value, entry, index) => {
-              const item = chartData.find((d) => d.name === value)
-              const percentage = item ? ((item.value / total) * 100).toFixed(1) : "0.0"
-              return (
-                <span style={{ fontSize: "0.75rem" }}>
-                  {value}: {percentage}%
-                </span>
-              )
-            }}
-          />
-        </PieChart>
-      </ResponsiveContainer>
-    </ChartContainer>
+            return acc
+          },
+          {} as Record<string, { label: string; color: string }>,
+        )}
+        className="h-full w-full"
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={chartData}
+              cx="50%"
+              cy="50%"
+              labelLine={false}
+              outerRadius={isMobile ? 60 : 80}
+              fill="#8884d8"
+              dataKey="value"
+              label={renderCustomizedLabel}
+            >
+              {chartData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip
+              formatter={(value: number) => [`$${value.toLocaleString()}`, `Valor`]}
+              labelFormatter={(name) =>
+                `${name} (${(((chartData.find((item) => item.name === name)?.value || 0) / total) * 100).toFixed(1)}%)`
+              }
+            />
+            <Legend
+              layout={isMobile ? "horizontal" : "vertical"}
+              verticalAlign={isMobile ? "bottom" : "middle"}
+              align={isMobile ? "center" : "right"}
+              wrapperStyle={isMobile ? { fontSize: 10 } : { fontSize: 12 }}
+              formatter={(value, entry, index) => {
+                const item = chartData.find((d) => d.name === value)
+                const percentage = item ? ((item.value / total) * 100).toFixed(1) : "0.0"
+                return (
+                  <span style={{ fontSize: isMobile ? "0.65rem" : "0.75rem" }}>
+                    {isMobile ? `${value.substring(0, 10)}${value.length > 10 ? "..." : ""}` : value}: {percentage}%
+                  </span>
+                )
+              }}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </ChartContainer>
+    </ResponsiveChartContainer>
   )
 }
