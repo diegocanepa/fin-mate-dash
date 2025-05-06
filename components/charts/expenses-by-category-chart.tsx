@@ -32,12 +32,12 @@ export function ExpensesByCategoryChart({ data }: ExpensesByCategoryChartProps) 
   const isMobile = useMediaQuery("(max-width: 640px)")
 
   const COLORS = [
-    "hsl(var(--chart-1))",
-    "hsl(var(--chart-2))",
-    "hsl(var(--chart-3))",
-    "hsl(var(--chart-4))",
-    "hsl(var(--chart-5))",
-    "hsl(var(--chart-6))",
+    "#6FB3B8", // Primario suave
+    "#F3C87B", // Secundario pastel
+    "#A3D9A5", // Éxito / positivo
+    "#F28B82", // Advertencia / negativo
+    "#556873", // Gris medio
+    "#1E2A33", // Azul grisáceo
   ]
 
   useEffect(() => {
@@ -103,14 +103,14 @@ export function ExpensesByCategoryChart({ data }: ExpensesByCategoryChartProps) 
     if (percent < 0.05) return null
 
     return (
-      <text x={x} y={y} fill="white" textAnchor={x > cx ? "start" : "end"} dominantBaseline="central" fontSize={10}>
+      <text x={x} y={y} fill="white" textAnchor={x > cx ? "start" : "end"} dominantBaseline="central" fontSize={12}>
         {`${(percent * 100).toFixed(1)}%`}
       </text>
     )
   }
 
   return (
-    <ResponsiveChartContainer mobileAspectRatio="aspect-square">
+    <ResponsiveChartContainer mobileAspectRatio="aspect-square" minHeight="min-h-[350px]">
       <ChartContainer
         config={chartData.reduce(
           (acc, item, index) => {
@@ -131,7 +131,7 @@ export function ExpensesByCategoryChart({ data }: ExpensesByCategoryChartProps) 
               cx="50%"
               cy="50%"
               labelLine={false}
-              outerRadius={isMobile ? 60 : 80}
+              outerRadius={isMobile ? 100 : 120}
               fill="#8884d8"
               dataKey="value"
               label={renderCustomizedLabel}
@@ -145,17 +145,22 @@ export function ExpensesByCategoryChart({ data }: ExpensesByCategoryChartProps) 
               labelFormatter={(name) =>
                 `${name} (${(((chartData.find((item) => item.name === name)?.value || 0) / total) * 100).toFixed(1)}%)`
               }
+              contentStyle={{
+                backgroundColor: "#1E2A33",
+                borderColor: "#556873",
+                borderRadius: "0.375rem",
+              }}
             />
             <Legend
               layout={isMobile ? "horizontal" : "vertical"}
               verticalAlign={isMobile ? "bottom" : "middle"}
               align={isMobile ? "center" : "right"}
-              wrapperStyle={isMobile ? { fontSize: 10 } : { fontSize: 12 }}
+              wrapperStyle={isMobile ? { fontSize: 10, paddingTop: 20 } : { fontSize: 12 }}
               formatter={(value, entry, index) => {
                 const item = chartData.find((d) => d.name === value)
                 const percentage = item ? ((item.value / total) * 100).toFixed(1) : "0.0"
                 return (
-                  <span style={{ fontSize: isMobile ? "0.65rem" : "0.75rem" }}>
+                  <span style={{ fontSize: isMobile ? "0.75rem" : "0.85rem", color: "#F0F2F5" }}>
                     {isMobile ? `${value.substring(0, 10)}${value.length > 10 ? "..." : ""}` : value}: {percentage}%
                   </span>
                 )

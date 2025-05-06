@@ -2,6 +2,7 @@
 
 import { getSupabaseClientForBrowser } from "./supabase"
 import type { Session } from "@supabase/supabase-js"
+import { createClient } from "@supabase/supabase-js"
 
 export type AuthResult = {
   success: boolean
@@ -9,10 +10,39 @@ export type AuthResult = {
   session?: Session | null
 }
 
+// Función para obtener un cliente de Supabase utilizando las variables inyectadas si es necesario
+function getSupabaseClient() {
+  // Intentar obtener el cliente normal primero
+  const client = getSupabaseClientForBrowser()
+  if (client) return client
+
+  // Si no está disponible, intentar crear uno con las variables inyectadas
+  if (typeof window !== "undefined") {
+    const windowSupabaseUrl = (window as any).__NEXT_PUBLIC_SUPABASE_URL
+    const windowSupabaseKey = (window as any).__NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (windowSupabaseUrl && windowSupabaseKey) {
+      console.log("Creando cliente Supabase con variables inyectadas")
+      return createClient(windowSupabaseUrl, windowSupabaseKey, {
+        db: { schema: "public" },
+      })
+    }
+  }
+
+  return null
+}
+
 // Iniciar sesión con email y contraseña
 export async function loginWithPassword(email: string, password: string): Promise<AuthResult> {
   try {
-    const supabase = getSupabaseClientForBrowser()
+    const supabase = getSupabaseClient()
+
+    if (!supabase) {
+      return {
+        success: false,
+        message: "Servicio de autenticación no disponible. Verifica la configuración de la aplicación.",
+      }
+    }
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -57,7 +87,15 @@ export async function loginWithPassword(email: string, password: string): Promis
 // Cerrar sesión
 export async function logout(): Promise<AuthResult> {
   try {
-    const supabase = getSupabaseClientForBrowser()
+    const supabase = getSupabaseClient()
+
+    if (!supabase) {
+      return {
+        success: false,
+        message: "Servicio de autenticación no disponible. Verifica la configuración de la aplicación.",
+      }
+    }
+
     const { error } = await supabase.auth.signOut()
 
     if (error) {
@@ -82,7 +120,13 @@ export async function logout(): Promise<AuthResult> {
 // Obtener la sesión actual
 export async function getCurrentSession(): Promise<Session | null> {
   try {
-    const supabase = getSupabaseClientForBrowser()
+    const supabase = getSupabaseClient()
+
+    if (!supabase) {
+      console.warn("Supabase client not available. Cannot get current session.")
+      return null
+    }
+
     const { data } = await supabase.auth.getSession()
     return data.session
   } catch (error) {
@@ -99,13 +143,29 @@ export async function isAuthenticated(): Promise<boolean> {
 
 // Suscribirse a cambios en la autenticación
 export function onAuthStateChange(callback: (session: Session | null) => void) {
-  const supabase = getSupabaseClientForBrowser()
+  try {
+    const supabase = getSupabaseClient()
 
-  const { data } = supabase.auth.onAuthStateChange((event, session) => {
-    callback(session)
-  })
+    if (!supabase) {
+      console.warn("Supabase client not available. Auth state changes will not be tracked.")
+      // Devolver un objeto de suscripción falso
+      return {
+        unsubscribe: () => {},
+      }
+    }
 
-  return data.subscription
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      callback(session)
+    })
+
+    return data.subscription
+  } catch (error) {
+    console.error("Error setting up auth state change listener:", error)
+    // Devolver un objeto de suscripción falso
+    return {
+      unsubscribe: () => {},
+    }
+  }
 }
 
 export async function verifySession(): Promise<boolean> {
@@ -143,3 +203,5 @@ export async function logoutUser(): Promise<void> {
     throw new Error("An unexpected error occurred")
   }
 }
+
+export const login = loginUser

@@ -28,6 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsAuthenticated(currentSession !== null)
       } catch (error) {
         console.error("Error al verificar la sesión:", error)
+        // No cambiar el estado de autenticación en caso de error
       } finally {
         setIsLoading(false)
       }
@@ -36,14 +37,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkSession()
 
     // Suscribirse a cambios en la autenticación
-    const subscription = onAuthStateChange((updatedSession) => {
-      setSession(updatedSession)
-      setIsAuthenticated(updatedSession !== null)
-    })
+    try {
+      const subscription = onAuthStateChange((updatedSession) => {
+        setSession(updatedSession)
+        setIsAuthenticated(updatedSession !== null)
+      })
 
-    // Limpiar la suscripción al desmontar
-    return () => {
-      subscription.unsubscribe()
+      // Limpiar la suscripción al desmontar
+      return () => {
+        try {
+          subscription.unsubscribe()
+        } catch (error) {
+          console.error("Error al cancelar la suscripción:", error)
+        }
+      }
+    } catch (error) {
+      console.error("Error al configurar la suscripción de autenticación:", error)
+      // No hay suscripción que limpiar
+      return () => {}
     }
   }, [])
 

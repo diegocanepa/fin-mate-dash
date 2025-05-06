@@ -1,13 +1,18 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { format, addMonths, subMonths } from "date-fns"
-import { es } from "date-fns/locale"
 import { CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+
+// Función auxiliar para formatear el mes y año
+function formatMonthYear(date: Date): string {
+  const month = date.toLocaleString("es", { month: "long" })
+  const year = date.getFullYear()
+  return `${month} ${year}`
+}
 
 interface MonthYearSelectorProps {
   onMonthYearChange: (year: number, month: number) => void
@@ -28,12 +33,14 @@ export function MonthYearSelector({
   }, [date, onMonthYearChange])
 
   const handlePreviousMonth = () => {
-    const newDate = subMonths(date, 1)
+    const newDate = new Date(date)
+    newDate.setMonth(date.getMonth() - 1)
     setDate(newDate)
   }
 
   const handleNextMonth = () => {
-    const newDate = addMonths(date, 1)
+    const newDate = new Date(date)
+    newDate.setMonth(date.getMonth() + 1)
     setDate(newDate)
   }
 
@@ -57,7 +64,7 @@ export function MonthYearSelector({
             className={cn("w-[180px] justify-start text-left font-normal", !date && "text-muted-foreground")}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {date ? format(date, "MMMM yyyy", { locale: es }) : <span>Seleccionar mes</span>}
+            {date ? formatMonthYear(date) : <span>Seleccionar mes</span>}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="end">
@@ -66,7 +73,6 @@ export function MonthYearSelector({
             selected={date}
             onSelect={handleMonthSelect}
             initialFocus
-            locale={es}
             captionLayout="dropdown-buttons"
             fromYear={2020}
             toYear={2030}

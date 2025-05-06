@@ -173,10 +173,6 @@ export default function BilleterasPage() {
           <TabsList className="flex flex-wrap">
             <TabsTrigger value="resumen">Resumen</TabsTrigger>
             <TabsTrigger value="historial">Historial de Transferencias</TabsTrigger>
-            <TabsTrigger value="wise">Wise</TabsTrigger>
-            <TabsTrigger value="deel">Deel</TabsTrigger>
-            <TabsTrigger value="revolut">Revolut</TabsTrigger>
-            <TabsTrigger value="nexo">Nexo</TabsTrigger>
           </TabsList>
           <TabsContent value="resumen" className="space-y-4">
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
@@ -279,54 +275,6 @@ export default function BilleterasPage() {
                     description="No hay transferencias registradas en el sistema."
                   />
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="wise" className="space-y-4">
-            {/* Contenido específico para Wise */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Detalles de Wise</CardTitle>
-                <CardDescription>Información y movimientos de la billetera Wise</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p>Contenido específico para Wise en desarrollo</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="deel" className="space-y-4">
-            {/* Contenido específico para Deel */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Detalles de Deel</CardTitle>
-                <CardDescription>Información y movimientos de la billetera Deel</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p>Contenido específico para Deel en desarrollo</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="revolut" className="space-y-4">
-            {/* Contenido específico para Revolut */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Detalles de Revolut</CardTitle>
-                <CardDescription>Información y movimientos de la billetera Revolut</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p>Contenido específico para Revolut en desarrollo</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="nexo" className="space-y-4">
-            {/* Contenido específico para Nexo */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Detalles de Nexo</CardTitle>
-                <CardDescription>Información y movimientos de la billetera Nexo</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p>Contenido específico para Nexo en desarrollo</p>
               </CardContent>
             </Card>
           </TabsContent>

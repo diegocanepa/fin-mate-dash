@@ -6,9 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { CalendarIcon } from "lucide-react"
-import { format } from "date-fns"
-import { es } from "date-fns/locale"
-
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
@@ -18,6 +15,15 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { addGastoIngreso } from "@/lib/db"
+
+// Función auxiliar para formatear fechas
+function formatDate(date: Date): string {
+  return date.toLocaleDateString("es", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  })
+}
 
 const formSchema = z.object({
   fecha: z.date({
@@ -56,7 +62,7 @@ export function AddTransactionForm() {
     setIsSubmitting(true)
     try {
       await addGastoIngreso({
-        fecha: format(values.fecha, "yyyy-MM-dd"),
+        fecha: values.fecha.toISOString().split("T")[0], // Formato YYYY-MM-DD
         accion: values.accion,
         amount: values.amount,
         moneda: values.moneda,
@@ -89,7 +95,7 @@ export function AddTransactionForm() {
                         variant={"outline"}
                         className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
                       >
-                        {field.value ? format(field.value, "PPP", { locale: es }) : <span>Seleccionar fecha</span>}
+                        {field.value ? formatDate(field.value) : <span>Seleccionar fecha</span>}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
@@ -101,7 +107,6 @@ export function AddTransactionForm() {
                       onSelect={field.onChange}
                       disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
                       initialFocus
-                      locale={es}
                     />
                   </PopoverContent>
                 </Popover>

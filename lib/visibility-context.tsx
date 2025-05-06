@@ -1,6 +1,8 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import type React from "react"
+
+import { createContext, useContext, useState, useEffect } from "react"
 
 interface VisibilityContextType {
   isVisible: boolean
@@ -9,34 +11,34 @@ interface VisibilityContextType {
 
 const VisibilityContext = createContext<VisibilityContextType | undefined>(undefined)
 
-export function VisibilityProvider({ children }: { children: ReactNode }) {
-  // Por defecto, los datos son visibles
+export function VisibilityProvider({ children }: { children: React.ReactNode }) {
   const [isVisible, setIsVisible] = useState(true)
+  const [isInitialized, setIsInitialized] = useState(false)
 
-  // Cargar la preferencia del usuario desde localStorage al iniciar
   useEffect(() => {
-    try {
-      const savedVisibility = localStorage.getItem("dataVisibility")
-      if (savedVisibility !== null) {
-        setIsVisible(savedVisibility === "true")
-      }
-    } catch (error) {
-      console.error("Error accessing localStorage:", error)
+    // Recuperar el estado de visibilidad del localStorage
+    const storedVisibility = localStorage.getItem("finmate-visibility")
+    if (storedVisibility !== null) {
+      setIsVisible(storedVisibility === "true")
     }
+    setIsInitialized(true)
   }, [])
 
-  // Función para alternar la visibilidad
   const toggleVisibility = () => {
-    try {
-      const newVisibility = !isVisible
-      setIsVisible(newVisibility)
-      // Guardar la preferencia en localStorage
-      localStorage.setItem("dataVisibility", String(newVisibility))
-    } catch (error) {
-      console.error("Error saving to localStorage:", error)
-      // Si hay un error con localStorage, al menos cambiamos el estado en memoria
-      setIsVisible(!isVisible)
-    }
+    const newVisibility = !isVisible
+    setIsVisible(newVisibility)
+    // Guardar el estado de visibilidad en localStorage
+    localStorage.setItem("finmate-visibility", String(newVisibility))
+
+    // Forzar un reflow para evitar problemas de renderizado
+    setTimeout(() => {
+      window.dispatchEvent(new Event("resize"))
+    }, 100)
+  }
+
+  // No renderizar nada hasta que se haya inicializado
+  if (!isInitialized) {
+    return null
   }
 
   return <VisibilityContext.Provider value={{ isVisible, toggleVisibility }}>{children}</VisibilityContext.Provider>
@@ -45,7 +47,7 @@ export function VisibilityProvider({ children }: { children: ReactNode }) {
 export function useVisibility() {
   const context = useContext(VisibilityContext)
   if (context === undefined) {
-    throw new Error("useVisibility debe ser usado dentro de un VisibilityProvider")
+    throw new Error("useVisibility must be used within a VisibilityProvider")
   }
   return context
 }

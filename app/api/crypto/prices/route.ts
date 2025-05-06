@@ -12,7 +12,7 @@ async function getCryptoPrices() {
     }
 
     const response = await fetch(
-      "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=BTC,ETH,XRP",
+      "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=BTC,ETH,XRP,SOL",
       {
         headers: {
           "X-CMC_PRO_API_KEY": apiKey,
@@ -70,6 +70,14 @@ function getMockCryptoPrices() {
       change24h: 3.7,
       marketCap: 30000000000,
       volume24h: 2000000000,
+    },
+    {
+      symbol: "SOL",
+      name: "Solana",
+      price: 140.25,
+      change24h: 5.2,
+      marketCap: 60000000000,
+      volume24h: 3500000000,
     },
   ]
 }

@@ -1,18 +1,24 @@
 "use client"
 
+import type React from "react"
+
 import { useVisibility } from "@/lib/visibility-context"
 
 interface SensitiveValueProps {
-  value: string | number
+  children: React.ReactNode
   className?: string
-  formatter?: (value: string | number) => string
-  placeholder?: string
 }
 
-export function SensitiveValue({ value, className, formatter, placeholder = "••••••" }: SensitiveValueProps) {
+export function SensitiveValue({ children, className }: SensitiveValueProps) {
   const { isVisible } = useVisibility()
 
-  const displayValue = formatter ? formatter(value) : value
-
-  return <span className={className}>{isVisible ? displayValue : placeholder}</span>
+  return (
+    <span className={className}>
+      {isVisible ? (
+        children
+      ) : (
+        <span className="select-none blur-sm hover:blur-none transition-all duration-200">{children}</span>
+      )}
+    </span>
+  )
 }
