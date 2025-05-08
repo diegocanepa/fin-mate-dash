@@ -1,4 +1,3 @@
-import { useSidebar } from "@/lib/sidebar-context"
 import type React from "react"
 import { Inter } from "next/font/google"
 import { MainNav } from "@/components/layout/main-nav"
@@ -7,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/lib/auth-context"
 import { VisibilityProvider } from "@/lib/visibility-context"
 import { SidebarProvider } from "@/lib/sidebar-context"
+import { SidebarAwareContent } from "@/components/layout/sidebar-aware-content"
 import { ProtectedLayout } from "@/components/protected-layout"
 import { cn } from "@/lib/utils"
 import "./globals.css"
@@ -112,18 +112,5 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </ThemeProvider>
       </body>
     </html>
-  )
-}
-
-// Componente que ajusta su margen según el estado del sidebar
-function SidebarAwareContent({ children }: { children: React.ReactNode }) {
-  const { isCollapsed } = useSidebar()
-
-  return (
-    <div
-      className={cn("flex flex-col flex-1 transition-all duration-300", isCollapsed ? "lg:ml-[80px]" : "lg:ml-[280px]")}
-    >
-      {children}
-    </div>
   )
 }
