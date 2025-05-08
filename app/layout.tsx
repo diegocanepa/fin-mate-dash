@@ -1,15 +1,14 @@
+import { useSidebar } from "@/lib/sidebar-context"
 import type React from "react"
 import { Inter } from "next/font/google"
 import { MainNav } from "@/components/layout/main-nav"
+import { MobileHeader } from "@/components/layout/mobile-header"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/lib/auth-context"
 import { VisibilityProvider } from "@/lib/visibility-context"
-import { VisibilityToggle } from "@/components/visibility-toggle"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { SidebarProvider } from "@/lib/sidebar-context"
 import { ProtectedLayout } from "@/components/protected-layout"
 import { cn } from "@/lib/utils"
-import Image from "next/image"
-import Link from "next/link"
 import "./globals.css"
 import { EnvironmentError } from "@/components/environment-error"
 import { EnvInjector } from "@/components/env-injector"
@@ -73,48 +72,58 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           <AuthProvider>
             <VisibilityProvider>
-              <ProtectedLayout>
-                {hasSupabaseEnv ? (
-                  <div className="flex min-h-screen flex-col">
-                    <header className="sticky top-0 z-50 w-full border-b bg-background">
-                      <div className="container flex h-16 items-center">
-                        <MainNav />
-                        <Link href="/" className="ml-2 flex items-center">
-                          <Image
-                            src="/images/finmate-logo.png"
-                            alt="FinMate Logo"
-                            width={32}
-                            height={32}
-                            className="mr-2"
-                          />
-                          <span className="hidden text-xl font-bold sm:inline-block">FinMate</span>
-                        </Link>
-                        <div className="ml-auto flex items-center gap-2">
-                          <VisibilityToggle />
-                          <ThemeToggle />
-                        </div>
-                      </div>
-                    </header>
-                    <main className="flex-1 container py-4 px-2 sm:py-6 sm:px-4 md:px-6">{children}</main>
-                    <footer className="border-t py-4 sm:py-6">
-                      <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">
-                        <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
-                          © 2025 FinMate
-                          {process.env.ENVIRONMENT && process.env.ENVIRONMENT.toLowerCase() !== "prod" && (
-                            <span className="ml-2 text-xs text-warning">({process.env.ENVIRONMENT.toUpperCase()})</span>
-                          )}
-                        </p>
-                      </div>
-                    </footer>
-                  </div>
-                ) : (
-                  <EnvironmentError />
-                )}
-              </ProtectedLayout>
+              <SidebarProvider>
+                <ProtectedLayout>
+                  {hasSupabaseEnv ? (
+                    <div className="flex min-h-screen">
+                      {/* Sidebar para desktop */}
+                      <MainNav />
+
+                      {/* Contenido principal */}
+                      <SidebarAwareContent>
+                        {/* Header para móvil */}
+                        <MobileHeader />
+
+                        {/* Contenido principal */}
+                        <main className="flex-1 p-4 lg:p-6">{children}</main>
+
+                        {/* Footer */}
+                        <footer className="border-t py-4">
+                          <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">
+                            <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
+                              © 2025 FinMate
+                              {process.env.ENVIRONMENT && process.env.ENVIRONMENT.toLowerCase() !== "prod" && (
+                                <span className="ml-2 text-xs text-warning">
+                                  ({process.env.ENVIRONMENT.toUpperCase()})
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                        </footer>
+                      </SidebarAwareContent>
+                    </div>
+                  ) : (
+                    <EnvironmentError />
+                  )}
+                </ProtectedLayout>
+              </SidebarProvider>
             </VisibilityProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
+  )
+}
+
+// Componente que ajusta su margen según el estado del sidebar
+function SidebarAwareContent({ children }: { children: React.ReactNode }) {
+  const { isCollapsed } = useSidebar()
+
+  return (
+    <div
+      className={cn("flex flex-col flex-1 transition-all duration-300", isCollapsed ? "lg:ml-[80px]" : "lg:ml-[280px]")}
+    >
+      {children}
+    </div>
   )
 }

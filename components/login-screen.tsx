@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { login } from "@/lib/auth-service"
 import { Button } from "@/components/ui/button"
@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, Eye, EyeOff } from "lucide-react"
 import Image from "next/image"
+import { cn } from "@/lib/utils"
 
 export function LoginScreen() {
   const [email, setEmail] = useState("")
@@ -19,7 +20,18 @@ export function LoginScreen() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [shake, setShake] = useState(false)
   const router = useRouter()
+
+  // Efecto para quitar la animación de shake después de un tiempo
+  useEffect(() => {
+    if (shake) {
+      const timer = setTimeout(() => {
+        setShake(false)
+      }, 500)
+      return () => clearTimeout(timer)
+    }
+  }, [shake])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,22 +42,32 @@ export function LoginScreen() {
     if (!email.trim()) {
       setError("Por favor ingresa tu email")
       setIsLoading(false)
+      setShake(true)
       return
     }
 
     if (!password.trim()) {
       setError("Por favor ingresa tu contraseña")
       setIsLoading(false)
+      setShake(true)
       return
     }
 
     try {
-      await login(email, password)
+      const result = await login(email, password, "")
+
+      if (!result.success) {
+        setError(result.message || "Credenciales inválidas. Por favor, verifica tu email y contraseña.")
+        setShake(true)
+        setIsLoading(false)
+        return
+      }
+
       router.push("/")
       router.refresh()
     } catch (err) {
-      console.error("Error de inicio de sesión:", err)
       setError("Credenciales inválidas. Por favor, verifica tu email y contraseña.")
+      setShake(true)
     } finally {
       setIsLoading(false)
     }
@@ -64,7 +86,7 @@ export function LoginScreen() {
           <p className="mt-2 text-center text-muted-foreground">Tu asistente financiero personal</p>
         </div>
 
-        <Card className="border-primary/20">
+        <Card className={cn("border-primary/20 transition-all", shake && "animate-shake")}>
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl text-center">Iniciar sesión</CardTitle>
             <CardDescription className="text-center">Ingresa tus credenciales para acceder a tu cuenta</CardDescription>
@@ -72,7 +94,10 @@ export function LoginScreen() {
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
               {error && (
-                <Alert variant="destructive">
+                <Alert
+                  variant="destructive"
+                  className="border-red-500 bg-red-50 text-red-800 dark:bg-red-950 dark:text-red-200"
+                >
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
@@ -86,7 +111,10 @@ export function LoginScreen() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="border-primary/20 focus-visible:ring-primary"
+                  className={cn(
+                    "border-primary/20 focus-visible:ring-primary",
+                    error && !email.trim() && "border-red-500 focus-visible:ring-red-500",
+                  )}
                 />
               </div>
               <div className="space-y-2">
@@ -103,7 +131,10 @@ export function LoginScreen() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="border-primary/20 focus-visible:ring-primary pr-10"
+                    className={cn(
+                      "border-primary/20 focus-visible:ring-primary pr-10",
+                      error && !password.trim() && "border-red-500 focus-visible:ring-red-500",
+                    )}
                   />
                   <Button
                     type="button"

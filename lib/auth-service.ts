@@ -22,7 +22,6 @@ function getSupabaseClient() {
     const windowSupabaseKey = (window as any).__NEXT_PUBLIC_SUPABASE_ANON_KEY
 
     if (windowSupabaseUrl && windowSupabaseKey) {
-      console.log("Creando cliente Supabase con variables inyectadas")
       return createClient(windowSupabaseUrl, windowSupabaseKey, {
         db: { schema: "public" },
       })
@@ -76,7 +75,6 @@ export async function loginWithPassword(email: string, password: string): Promis
       session: data.session,
     }
   } catch (error) {
-    console.error("Error al iniciar sesión:", error)
     return {
       success: false,
       message: "Ocurrió un error inesperado al iniciar sesión",
@@ -109,7 +107,6 @@ export async function logout(): Promise<AuthResult> {
       success: true,
     }
   } catch (error) {
-    console.error("Error al cerrar sesión:", error)
     return {
       success: false,
       message: "Ocurrió un error inesperado al cerrar sesión",
@@ -123,14 +120,12 @@ export async function getCurrentSession(): Promise<Session | null> {
     const supabase = getSupabaseClient()
 
     if (!supabase) {
-      console.warn("Supabase client not available. Cannot get current session.")
       return null
     }
 
     const { data } = await supabase.auth.getSession()
     return data.session
   } catch (error) {
-    console.error("Error al obtener la sesión:", error)
     return null
   }
 }
@@ -147,7 +142,6 @@ export function onAuthStateChange(callback: (session: Session | null) => void) {
     const supabase = getSupabaseClient()
 
     if (!supabase) {
-      console.warn("Supabase client not available. Auth state changes will not be tracked.")
       // Devolver un objeto de suscripción falso
       return {
         unsubscribe: () => {},
@@ -160,7 +154,6 @@ export function onAuthStateChange(callback: (session: Session | null) => void) {
 
     return data.subscription
   } catch (error) {
-    console.error("Error setting up auth state change listener:", error)
     // Devolver un objeto de suscripción falso
     return {
       unsubscribe: () => {},
@@ -190,7 +183,6 @@ export async function loginUser(
 
     return { success: true }
   } catch (error) {
-    console.error("Login error:", error)
     return { success: false, message: "An unexpected error occurred" }
   }
 }
@@ -199,7 +191,6 @@ export async function logoutUser(): Promise<void> {
   try {
     await logout()
   } catch (error) {
-    console.error("Logout error:", error)
     throw new Error("An unexpected error occurred")
   }
 }

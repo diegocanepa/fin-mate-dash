@@ -3,14 +3,45 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { BarChart3, CreditCard, DollarSign, Home, PiggyBank, Wallet, Menu } from "lucide-react"
-import { useState } from "react"
+import {
+  BarChart3,
+  CreditCard,
+  DollarSign,
+  Home,
+  PiggyBank,
+  Wallet,
+  Menu,
+  X,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import Image from "next/image"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { VisibilityToggle } from "@/components/visibility-toggle"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useSidebar } from "@/lib/sidebar-context"
 
 export function MainNav() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const { isCollapsed, toggleSidebar } = useSidebar()
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024)
+    }
+
+    checkMobile()
+    window.addEventListener("resize", checkMobile)
+
+    return () => {
+      window.removeEventListener("resize", checkMobile)
+    }
+  }, [])
 
   const routes = [
     {
@@ -53,62 +84,130 @@ export function MainNav() {
 
   return (
     <>
-      {/* Versión móvil */}
-      <div className="md:hidden">
+      {/* Versión móvil - Sheet */}
+      {isMobile && (
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <Menu className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="lg:hidden">
+              <Menu className="h-6 w-6" />
               <span className="sr-only">Abrir menú</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="left">
-            <div className="flex items-center mb-6">
-              <img src="/images/finmate-logo.png" alt="FinMate Logo" className="w-8 h-8 mr-2" />
-              <span className="text-lg font-bold">FinMate</span>
-            </div>
-            <div className="flex flex-col space-y-4 py-4">
-              {routes.map((route) => {
-                const Icon = route.icon
-                return (
-                  <Link
-                    key={route.href}
-                    href={route.href}
-                    className={cn(
-                      "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent",
-                      route.active ? "bg-primary/10 text-primary" : "text-muted-foreground",
-                    )}
-                    onClick={() => setOpen(false)}
-                  >
-                    <Icon className="mr-2 h-4 w-4" />
-                    {route.label}
-                  </Link>
-                )
-              })}
+          <SheetContent side="left" className="p-0 w-[280px]">
+            <div className="space-y-4 py-4">
+              <div className="px-4 py-2 flex items-center border-b">
+                <Image src="/images/finmate-logo.png" alt="FinMate Logo" width={32} height={32} className="mr-2" />
+                <span className="text-lg font-bold">FinMate</span>
+                <Button variant="ghost" size="icon" className="ml-auto" onClick={() => setOpen(false)}>
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+              <div className="px-3 py-2 space-y-1">
+                {routes.map((route) => {
+                  const Icon = route.icon
+                  return (
+                    <Link
+                      key={route.href}
+                      href={route.href}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:bg-accent",
+                        route.active ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground",
+                      )}
+                      onClick={() => setOpen(false)}
+                    >
+                      <Icon className="h-5 w-5" />
+                      <span>{route.label}</span>
+                    </Link>
+                  )
+                })}
+              </div>
+              <div className="px-3 pt-2 border-t flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <VisibilityToggle />
+                  <ThemeToggle />
+                </div>
+              </div>
             </div>
           </SheetContent>
         </Sheet>
-      </div>
+      )}
 
-      {/* Versión desktop */}
-      <nav className="hidden md:flex items-center space-x-4 lg:space-x-6">
-        {routes.map((route) => {
-          const Icon = route.icon
-          return (
-            <Link
-              key={route.href}
-              href={route.href}
-              className={cn(
-                "flex items-center text-sm font-medium transition-colors hover:text-primary",
-                route.active ? "text-primary" : "text-muted-foreground",
-              )}
+      {/* Versión desktop - Sidebar fijo */}
+      {!isMobile && (
+        <div
+          className={cn(
+            "hidden lg:flex lg:flex-col h-screen border-r bg-background fixed transition-all duration-300 z-10",
+            isCollapsed ? "w-[80px]" : "w-[280px]",
+          )}
+        >
+          <div className="flex h-14 items-center border-b px-4">
+            {!isCollapsed && (
+              <>
+                <Image src="/images/finmate-logo.png" alt="FinMate Logo" width={32} height={32} className="mr-2" />
+                <span className="text-lg font-bold">FinMate</span>
+              </>
+            )}
+            {isCollapsed && (
+              <Image src="/images/finmate-logo.png" alt="FinMate Logo" width={32} height={32} className="mx-auto" />
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn("ml-auto", isCollapsed && "mx-auto")}
+              onClick={toggleSidebar}
             >
-              <Icon className="mr-2 h-4 w-4" />
-              {route.label}
-            </Link>
-          )
-        })}
-      </nav>
+              {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+            </Button>
+          </div>
+          <div className="flex-1 overflow-auto py-4 px-4">
+            <nav className="flex flex-col gap-1">
+              <TooltipProvider>
+                {routes.map((route) => {
+                  const Icon = route.icon
+                  return isCollapsed ? (
+                    <Tooltip key={route.href} delayDuration={0}>
+                      <TooltipTrigger asChild>
+                        <Link
+                          href={route.href}
+                          className={cn(
+                            "flex items-center justify-center rounded-lg p-3 text-sm transition-all hover:bg-accent",
+                            route.active ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground",
+                          )}
+                        >
+                          <Icon className="h-5 w-5" />
+                          <span className="sr-only">{route.label}</span>
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">{route.label}</TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <Link
+                      key={route.href}
+                      href={route.href}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:bg-accent",
+                        route.active ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground",
+                      )}
+                    >
+                      <Icon className="h-5 w-5" />
+                      <span>{route.label}</span>
+                    </Link>
+                  )
+                })}
+              </TooltipProvider>
+            </nav>
+          </div>
+          <div
+            className={cn(
+              "border-t py-4 px-4",
+              isCollapsed ? "flex flex-col items-center gap-4" : "flex items-center justify-between",
+            )}
+          >
+            <VisibilityToggle />
+            <ThemeToggle />
+          </div>
+        </div>
+      )}
     </>
   )
 }
