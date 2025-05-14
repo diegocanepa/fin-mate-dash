@@ -1,29 +1,17 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, CheckCircle2 } from "lucide-react"
-import { useTelegram } from "@/lib/telegram-context"
 
 export function TelegramLinkScreen() {
   const [status, setStatus] = useState<"idle" | "linking" | "success" | "error">("idle")
   const [error, setError] = useState<string | null>(null)
-  const { isLinked, setIsLinked, isLinking, setIsLinking } = useTelegram()
-  const router = useRouter()
-
-  // Si ya está vinculado, redirigir al dashboard
-  useEffect(() => {
-    if (isLinked) {
-      router.push("/")
-    }
-  }, [isLinked, router])
 
   const handleLinkTelegram = () => {
     setStatus("linking")
-    setIsLinking(true)
     setError(null)
 
     // Simulamos el proceso de vinculación
@@ -31,13 +19,6 @@ export function TelegramLinkScreen() {
       // En una implementación real, aquí redirigirías a Telegram
       window.open("https://t.me/your_bot_username?start=unique_user_token", "_blank")
       setStatus("success")
-
-      // Simulamos que el usuario completa el proceso después de un tiempo
-      setTimeout(() => {
-        setIsLinked(true)
-        localStorage.setItem("telegramLinked", "true")
-        router.push("/")
-      }, 3000)
     }, 1500)
   }
 

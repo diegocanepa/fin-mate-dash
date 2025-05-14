@@ -1,48 +1,34 @@
 "use client"
 
-import type React from "react"
-
-import { createContext, useContext, useState, useEffect } from "react"
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 
 type SidebarContextType = {
   isCollapsed: boolean
   toggleSidebar: () => void
-  setCollapsed: (collapsed: boolean) => void
 }
 
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined)
 
-export function SidebarProvider({ children }: { children: React.ReactNode }) {
+export function SidebarProvider({ children }: { children: ReactNode }) {
   const [isCollapsed, setIsCollapsed] = useState(false)
 
-  // Inicializar desde localStorage si está disponible
+  // Cargar el estado del sidebar desde localStorage
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("sidebar-collapsed")
-      if (stored !== null) {
-        setIsCollapsed(stored === "true")
-      }
+      const savedState = localStorage.getItem("sidebarCollapsed") === "true"
+      setIsCollapsed(savedState)
     }
   }, [])
 
-  // Guardar en localStorage cuando cambia
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("sidebar-collapsed", isCollapsed.toString())
-    }
-  }, [isCollapsed])
-
   const toggleSidebar = () => {
-    setIsCollapsed(!isCollapsed)
+    const newState = !isCollapsed
+    setIsCollapsed(newState)
+    if (typeof window !== "undefined") {
+      localStorage.setItem("sidebarCollapsed", String(newState))
+    }
   }
 
-  const setCollapsed = (collapsed: boolean) => {
-    setIsCollapsed(collapsed)
-  }
-
-  return (
-    <SidebarContext.Provider value={{ isCollapsed, toggleSidebar, setCollapsed }}>{children}</SidebarContext.Provider>
-  )
+  return <SidebarContext.Provider value={{ isCollapsed, toggleSidebar }}>{children}</SidebarContext.Provider>
 }
 
 export function useSidebar() {

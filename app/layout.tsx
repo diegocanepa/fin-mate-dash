@@ -6,7 +6,6 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/lib/auth-context"
 import { VisibilityProvider } from "@/lib/visibility-context"
 import { SidebarProvider } from "@/lib/sidebar-context"
-import { TelegramProvider } from "@/lib/telegram-context"
 import { SidebarAwareContent } from "@/components/layout/sidebar-aware-content"
 import { ProtectedLayout } from "@/components/protected-layout"
 import { cn } from "@/lib/utils"
@@ -74,41 +73,39 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AuthProvider>
             <VisibilityProvider>
               <SidebarProvider>
-                <TelegramProvider>
-                  <ProtectedLayout>
-                    {hasSupabaseEnv ? (
-                      <div className="flex min-h-screen">
-                        {/* Sidebar para desktop */}
-                        <MainNav />
+                <ProtectedLayout>
+                  {hasSupabaseEnv ? (
+                    <div className="flex min-h-screen">
+                      {/* Sidebar para desktop */}
+                      <MainNav />
+
+                      {/* Contenido principal */}
+                      <SidebarAwareContent>
+                        {/* Header para móvil */}
+                        <MobileHeader />
 
                         {/* Contenido principal */}
-                        <SidebarAwareContent>
-                          {/* Header para móvil */}
-                          <MobileHeader />
+                        <main className="flex-1 p-4 lg:p-6">{children}</main>
 
-                          {/* Contenido principal */}
-                          <main className="flex-1 p-4 lg:p-6">{children}</main>
-
-                          {/* Footer */}
-                          <footer className="border-t py-4">
-                            <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">
-                              <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
-                                © 2025 FinMate
-                                {process.env.ENVIRONMENT && process.env.ENVIRONMENT.toLowerCase() !== "prod" && (
-                                  <span className="ml-2 text-xs text-warning">
-                                    ({process.env.ENVIRONMENT.toUpperCase()})
-                                  </span>
-                                )}
-                              </p>
-                            </div>
-                          </footer>
-                        </SidebarAwareContent>
-                      </div>
-                    ) : (
-                      <EnvironmentError />
-                    )}
-                  </ProtectedLayout>
-                </TelegramProvider>
+                        {/* Footer */}
+                        <footer className="border-t py-4">
+                          <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">
+                            <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
+                              © 2025 FinMate
+                              {process.env.ENVIRONMENT && process.env.ENVIRONMENT.toLowerCase() !== "prod" && (
+                                <span className="ml-2 text-xs text-warning">
+                                  ({process.env.ENVIRONMENT.toUpperCase()})
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                        </footer>
+                      </SidebarAwareContent>
+                    </div>
+                  ) : (
+                    <EnvironmentError />
+                  )}
+                </ProtectedLayout>
               </SidebarProvider>
             </VisibilityProvider>
           </AuthProvider>

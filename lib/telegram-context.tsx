@@ -20,9 +20,10 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
 
   // Verificar si el usuario ya ha vinculado Telegram
   useEffect(() => {
-    // En una implementación real, verificaríamos con la API
-    const linkedStatus = localStorage.getItem("telegramLinked") === "true"
-    setIsLinked(linkedStatus)
+    if (typeof window !== "undefined") {
+      const linkedStatus = localStorage.getItem("telegramLinked") === "true"
+      setIsLinked(linkedStatus)
+    }
   }, [])
 
   // Redirigir al usuario a la página de vinculación si no está vinculado

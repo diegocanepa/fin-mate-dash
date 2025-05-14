@@ -1,5 +1,5 @@
 import { TelegramLinkScreen } from "@/components/telegram-link-screen"
 
-export default function TelegramLinkPage() {
+export default function VincularTelegramPage() {
   return <TelegramLinkScreen />
 }
