@@ -4,21 +4,23 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { login, signInWithProvider } from "@/lib/auth-service"
+import { registerWithPassword, signInWithProvider } from "@/lib/auth-service"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, Eye, EyeOff } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { SocialButton } from "./auth/social-button"
 
-export function LoginScreen() {
+export function RegisterScreen() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [shake, setShake] = useState(false)
@@ -38,6 +40,7 @@ export function LoginScreen() {
     e.preventDefault()
     setIsLoading(true)
     setError(null)
+    setSuccess(null)
 
     // Validación básica
     if (!email.trim()) {
@@ -48,26 +51,47 @@ export function LoginScreen() {
     }
 
     if (!password.trim()) {
-      setError("Por favor ingresa tu contraseña")
+      setError("Por favor ingresa una contraseña")
+      setIsLoading(false)
+      setShake(true)
+      return
+    }
+
+    if (password.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres")
+      setIsLoading(false)
+      setShake(true)
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setError("Las contraseñas no coinciden")
       setIsLoading(false)
       setShake(true)
       return
     }
 
     try {
-      const result = await login(email, password, "")
+      const result = await registerWithPassword(email, password)
 
       if (!result.success) {
-        setError(result.message || "Credenciales inválidas. Por favor, verifica tu email y contraseña.")
+        setError(result.message || "Error al registrar la cuenta. Inténtalo de nuevo.")
         setShake(true)
         setIsLoading(false)
         return
       }
 
-      router.push("/")
-      router.refresh()
+      setSuccess(
+        "¡Registro exitoso! Revisa tu email para confirmar tu cuenta. Una vez confirmada, podrás iniciar sesión.",
+      )
+
+      // Si el registro es exitoso pero requiere verificación de email, no redirigimos
+      if (result.session) {
+        router.push("/")
+        router.refresh()
+      }
     } catch (err) {
-      setError("Credenciales inválidas. Por favor, verifica tu email y contraseña.")
+      setError("Error al registrar la cuenta. Inténtalo de nuevo.")
       setShake(true)
     } finally {
       setIsLoading(false)
@@ -99,8 +123,8 @@ export function LoginScreen() {
 
         <Card className={cn("border-primary/20 transition-all", shake && "animate-shake")}>
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">Iniciar sesión</CardTitle>
-            <CardDescription className="text-center">Ingresa tus credenciales para acceder a tu cuenta</CardDescription>
+            <CardTitle className="text-2xl text-center">Crear cuenta</CardTitle>
+            <CardDescription className="text-center">Regístrate para comenzar a gestionar tus finanzas</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             {error && (
@@ -113,16 +137,22 @@ export function LoginScreen() {
               </Alert>
             )}
 
+            {success && (
+              <Alert className="border-green-500 bg-green-50 text-green-800 dark:bg-green-950 dark:text-green-200">
+                <AlertDescription>{success}</AlertDescription>
+              </Alert>
+            )}
+
             {/* Botones de inicio de sesión social */}
             <div className="space-y-3">
               <SocialButton
                 provider="google"
-                label="Continuar con Google"
+                label="Registrarme con Google"
                 onClick={() => handleSocialLogin("google")}
               />
               <SocialButton
                 provider="facebook"
-                label="Continuar con Facebook"
+                label="Registrarme con Facebook"
                 onClick={() => handleSocialLogin("facebook")}
               />
             </div>
@@ -133,11 +163,11 @@ export function LoginScreen() {
                 <span className="w-full border-t" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">O continúa con</span>
+                <span className="bg-background px-2 text-muted-foreground">O regístrate con</span>
               </div>
             </div>
 
-            {/* Formulario de inicio de sesión tradicional */}
+            {/* Formulario de registro tradicional */}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -155,12 +185,7 @@ export function LoginScreen() {
                 />
               </div>
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Contraseña</Label>
-                  <a href="#" className="text-sm text-primary hover:underline">
-                    ¿Olvidaste tu contraseña?
-                  </a>
-                </div>
+                <Label htmlFor="password">Contraseña</Label>
                 <div className="relative">
                   <Input
                     id="password"
@@ -185,11 +210,35 @@ export function LoginScreen() {
                   </Button>
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirmar contraseña</Label>
+                <Input
+                  id="confirmPassword"
+                  type={showPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  className={cn(
+                    "border-primary/20 focus-visible:ring-primary",
+                    error &&
+                      (password !== confirmPassword || !confirmPassword.trim()) &&
+                      "border-red-500 focus-visible:ring-red-500",
+                  )}
+                />
+              </div>
               <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isLoading}>
-                {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
+                {isLoading ? "Creando cuenta..." : "Crear cuenta"}
               </Button>
             </form>
           </CardContent>
+          <CardFooter>
+            <p className="text-center text-sm text-muted-foreground w-full">
+              ¿Ya tienes una cuenta?{" "}
+              <a href="/" className="text-primary hover:underline">
+                Inicia sesión aquí
+              </a>
+            </p>
+          </CardFooter>
         </Card>
       </div>
     </div>

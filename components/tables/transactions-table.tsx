@@ -91,16 +91,18 @@ export const columns: ColumnDef<Transaction>[] = [
 
       return (
         <div className={action === "gasto" ? "text-red-500 font-medium" : "text-green-500 font-medium"}>
-          {action === "gasto" ? "-" : "+"}
-          <SensitiveValue
-            value={amount}
-            formatter={(value) =>
-              new Intl.NumberFormat("es-AR", {
-                style: "currency",
-                currency: validCurrency,
-              }).format(Number(value))
-            }
-          />
+          <span className="inline-flex items-center">
+            <span className="mr-1">{action === "gasto" ? "-" : "+"}</span>
+            <SensitiveValue
+              value={amount}
+              formatter={(value) =>
+                new Intl.NumberFormat("es-AR", {
+                  style: "currency",
+                  currency: validCurrency,
+                }).format(Number(value))
+              }
+            />
+          </span>
         </div>
       )
     },

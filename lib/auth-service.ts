@@ -3,6 +3,7 @@
 import { getSupabaseClientForBrowser } from "./supabase"
 import type { Session } from "@supabase/supabase-js"
 import { createClient } from "@supabase/supabase-js"
+import type { Provider } from "@supabase/supabase-js"
 
 export type AuthResult = {
   success: boolean
@@ -29,6 +30,50 @@ function getSupabaseClient() {
   }
 
   return null
+}
+
+// Iniciar sesión con proveedor OAuth (Google, Facebook, etc.)
+export async function signInWithProvider(provider: Provider): Promise<AuthResult> {
+  try {
+    const supabase = getSupabaseClient()
+
+    if (!supabase) {
+      return {
+        success: false,
+        message: "Servicio de autenticación no disponible. Verifica la configuración de la aplicación.",
+      }
+    }
+
+    // Definir URL de redirección basada en la URL actual
+    const redirectTo = `${window.location.origin}/auth/callback`
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo,
+        queryParams: {
+          prompt: "consent", // Forzar diálogo de consentimiento para Google
+        },
+      },
+    })
+
+    if (error) {
+      return {
+        success: false,
+        message: error.message,
+      }
+    }
+
+    // No necesitamos devolver nada aquí porque la redirección ya habrá ocurrido
+    return {
+      success: true,
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: "Error al intentar iniciar sesión con proveedor externo",
+    }
+  }
 }
 
 // Iniciar sesión con email y contraseña
@@ -78,6 +123,46 @@ export async function loginWithPassword(email: string, password: string): Promis
     return {
       success: false,
       message: "Ocurrió un error inesperado al iniciar sesión",
+    }
+  }
+}
+
+// Registrar usuario con email y contraseña
+export async function registerWithPassword(email: string, password: string): Promise<AuthResult> {
+  try {
+    const supabase = getSupabaseClient()
+
+    if (!supabase) {
+      return {
+        success: false,
+        message: "Servicio de autenticación no disponible. Verifica la configuración de la aplicación.",
+      }
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+
+    if (error) {
+      return {
+        success: false,
+        message: error.message,
+      }
+    }
+
+    return {
+      success: true,
+      session: data.session,
+      message: "Se ha enviado un correo de confirmación a tu email.",
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: "Ocurrió un error inesperado al registrar el usuario",
     }
   }
 }
