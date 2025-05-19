@@ -1,9 +1,9 @@
 "use client"
 
-import { getSupabaseClientForBrowser } from "./supabase"
-import type { Session } from "@supabase/supabase-js"
-import { createClient } from "@supabase/supabase-js"
-import type { Provider } from "@supabase/supabase-js"
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import type { Provider, Session } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
+import { getSupabaseClientForBrowser } from "./supabase";
 
 export type AuthResult = {
   success: boolean
@@ -35,7 +35,7 @@ function getSupabaseClient() {
 // Iniciar sesión con proveedor OAuth (Google, Facebook, etc.)
 export async function signInWithProvider(provider: Provider): Promise<AuthResult> {
   try {
-    const supabase = getSupabaseClient()
+    const supabase = createClientComponentClient()
 
     if (!supabase) {
       return {
@@ -50,10 +50,7 @@ export async function signInWithProvider(provider: Provider): Promise<AuthResult
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo,
-        queryParams: {
-          prompt: "consent", // Forzar diálogo de consentimiento para Google
-        },
+        redirectTo
       },
     })
 

@@ -1,17 +1,10 @@
-import type React from "react"
-import { Inter } from "next/font/google"
-import { MainNav } from "@/components/layout/main-nav"
-import { MobileHeader } from "@/components/layout/mobile-header"
-import { ThemeProvider } from "@/components/theme-provider"
-import { AuthProvider } from "@/lib/auth-context"
-import { VisibilityProvider } from "@/lib/visibility-context"
-import { SidebarProvider } from "@/lib/sidebar-context"
-import { SidebarAwareContent } from "@/components/layout/sidebar-aware-content"
-import { ProtectedLayout } from "@/components/protected-layout"
-import { cn } from "@/lib/utils"
-import "./globals.css"
-import { EnvironmentError } from "@/components/environment-error"
 import { EnvInjector } from "@/components/env-injector"
+import { EnvironmentError } from "@/components/environment-error"
+import { ThemeProvider } from "@/components/theme-provider"
+import { cn } from "@/lib/utils"
+import { Inter } from "next/font/google"
+import type React from "react"
+import "./globals.css"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -29,10 +22,10 @@ export const metadata = {
   formatDetection: {
     telephone: false,
   },
-    generator: 'v0.dev'
+  generator: 'v0.dev'
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Verificar si las variables de entorno están disponibles
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
@@ -70,45 +63,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           storageKey="finmate-theme"
           disableTransitionOnChange
         >
-          <AuthProvider>
-            <VisibilityProvider>
-              <SidebarProvider>
-                <ProtectedLayout>
-                  {hasSupabaseEnv ? (
-                    <div className="flex min-h-screen">
-                      {/* Sidebar para desktop */}
-                      <MainNav />
-
-                      {/* Contenido principal */}
-                      <SidebarAwareContent>
-                        {/* Header para móvil */}
-                        <MobileHeader />
-
-                        {/* Contenido principal */}
-                        <main className="flex-1 p-4 lg:p-6">{children}</main>
-
-                        {/* Footer */}
-                        <footer className="border-t py-4">
-                          <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">
-                            <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
-                              © 2025 FinMate
-                              {process.env.ENVIRONMENT && process.env.ENVIRONMENT.toLowerCase() !== "prod" && (
-                                <span className="ml-2 text-xs text-warning">
-                                  ({process.env.ENVIRONMENT.toUpperCase()})
-                                </span>
-                              )}
-                            </p>
-                          </div>
-                        </footer>
-                      </SidebarAwareContent>
-                    </div>
-                  ) : (
-                    <EnvironmentError />
-                  )}
-                </ProtectedLayout>
-              </SidebarProvider>
-            </VisibilityProvider>
-          </AuthProvider>
+          {hasSupabaseEnv ? (
+            <div className="flex min-h-screen">
+              {/* Contenido principal */}
+              <main className="flex-1">{children}</main>
+            </div>
+          ) : (
+            <EnvironmentError />
+          )}
         </ThemeProvider>
       </body>
     </html>

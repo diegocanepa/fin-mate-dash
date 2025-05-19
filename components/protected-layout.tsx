@@ -1,10 +1,10 @@
 "use client"
 
-import { useAuth } from "@/lib/auth-context"
 import { LoginScreen } from "@/components/login-screen"
-import type { ReactNode } from "react"
-import { LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/lib/auth-context"
+import { LogOut } from "lucide-react"
+import type { ReactNode } from "react"
 
 export function ProtectedLayout({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading, logout } = useAuth()
