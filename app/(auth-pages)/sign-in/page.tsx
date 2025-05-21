@@ -2,6 +2,7 @@
 
 import type React from "react"
 
+import { SocialButton } from "@/components/auth/social-button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,9 +14,8 @@ import { AlertCircle, Eye, EyeOff } from "lucide-react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { SocialButton } from "./auth/social-button"
 
-export function LoginScreen() {
+export default function LoginScreen() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)

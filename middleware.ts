@@ -1,36 +1,46 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { verifySession } from "@/lib/auth-service"
+import { type NextRequest, NextResponse } from "next/server";
+import { updateSession } from "./utils/supabase/middleware";
 
-// Add paths that should be public
-const publicPaths = ["/_next", "/favicon.ico", "/api/auth/login", "/api/auth/session"]
+export async function middleware(req: NextRequest) {
+  const reqUrl = new URL(req.url)
+  const { res, session } = await updateSession(req)
 
-export async function middleware(request: NextRequest) {
-  // Check if the path should be accessible without authentication
-  const { pathname } = request.nextUrl
-  if (publicPaths.some((path) => pathname.startsWith(path))) {
-    return NextResponse.next()
+  // Verificar si hay un usuario autenticado
+  const isAuthenticated = !!session.data.user
+
+  // Definir páginas públicas y protegidas
+  const isLoginPage = reqUrl.pathname === "/sign-in"
+  const isLandingPage = reqUrl.pathname === "/"
+
+  // Lógica de redirección mejorada
+  if (isLoginPage && isAuthenticated) {
+    // Si el usuario ya está autenticado y está en la página de login, redirigir al dashboard
+    return NextResponse.redirect(new URL("/", req.url))
   }
 
-  // For API routes, verify session
-  if (pathname.startsWith("/api/")) {
-    const isAuthenticated = await verifySession()
-    if (!isAuthenticated) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-    return NextResponse.next()
+  if (!isAuthenticated) {
+    // Si el usuario no está autenticado y está en la página de inicio, redirigir a la página de login
+    return NextResponse.redirect(new URL("/sign-in", req.url))
   }
 
-  // For page routes, let the client-side auth handle it
-  return NextResponse.next()
+  if (!isAuthenticated && !isLoginPage && !isLandingPage) {
+    // Si el usuario no está autenticado y está intentando acceder a una página protegida
+    return NextResponse.redirect(new URL("/sign-in", req.url))
+  }
+
+  // En todos los demás casos, continuar con la solicitud
+  return res
 }
 
 export const config = {
   matcher: [
     /*
-     * Match all API routes except auth-related ones
-     * Match all page routes
+     * Match all routes except:
+     * - Auth callback route
+     * - Sign-in page
+     * - Public assets
+     * - API routes that no requieren autenticación
      */
-    "/api/:path*",
-    "/((?!_next/static|_next/image|favicon.ico).*)",
+    "/((?!auth/callback|sign-in|_next/static|_next/image|favicon.ico|api/public|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 }
