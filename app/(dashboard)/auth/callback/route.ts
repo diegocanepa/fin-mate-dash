@@ -1,3 +1,4 @@
+import { userTelegramSincronized } from '@/lib/user-checker';
 import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from "next/server";
 
@@ -12,16 +13,21 @@ export async function GET(request: Request) {
     if (!error) {
       const forwardedHost = request.headers.get('x-forwarded-host') // original origin before load balancer
       const isLocalEnv = process.env.NODE_ENV === 'development';
-      if (isLocalEnv) {
-        // we can be sure that there is no load balancer in between, so no need to watch for X-Forwarded-Host
-        return NextResponse.redirect(`${origin}/${next}`)
-      } else if (forwardedHost) {
-        return NextResponse.redirect(`https://${forwardedHost}/${next}`)
+      const userTelegramId = await userTelegramSincronized();
+      if (userTelegramId) {
+        // if the user is not sincronized in Telegram, redirect to the Telegram login page
+        return NextResponse.redirect(`https://t.me/FinancialMateTestBot?start=link_${userTelegramId}`);
       } else {
-        return NextResponse.redirect(`${origin}/${next}`)
+        if (isLocalEnv) {
+          // we can be sure that there is no load balancer in between, so no need to watch for X-Forwarded-Host
+          return NextResponse.redirect(`${origin}/${next}`)
+        } else if (forwardedHost) {
+          return NextResponse.redirect(`https://${forwardedHost}/${next}`)
+        } else {
+          return NextResponse.redirect(`${origin}/${next}`)
+        }
       }
     } else {
-      console.error('Error trying to login')
       throw new Error('Error trying to login');
     }
   }
