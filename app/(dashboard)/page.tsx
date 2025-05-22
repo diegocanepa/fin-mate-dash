@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ENVIRONMENT } from "@/lib/supabase";
 import { createClient } from "@/utils/supabase/client";
 import { FileCode, LogOut } from "lucide-react";
 import Image from "next/image";
@@ -10,10 +9,7 @@ import { redirect } from "next/navigation";
 
 export default function DashboardPage() {
     // Verificar si estamos en un entorno de cliente o servidor
-    const environment =
-        typeof window !== "undefined"
-            ? window.localStorage.getItem("ENVIRONMENT") || ENVIRONMENT || "prod"
-            : ENVIRONMENT || "prod";
+    const environment = process.env.NODE_ENV === "development" ? 'development' : 'production';
     const supabase = createClient();
 
     const handleSignOut = () => {
